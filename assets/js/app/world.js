@@ -1809,6 +1809,9 @@ class TokyoCityWorld {
     const loader = new THREE.GLTFLoader();
     const modelUrl = "assets/models/cathedral.glb";
     console.log("Loading Grand Gothic Cathedral 3D model from:", modelUrl);
+    if (window.showGameToast) {
+      window.showGameToast("🏛️ Mengunduh arsitektur 3D Katedral...", 3000);
+    }
     loader.load(
       modelUrl,
       (gltf) => {
@@ -1822,28 +1825,45 @@ class TokyoCityWorld {
             child.castShadow = true;
             child.receiveShadow = true;
             if (child.material) {
-              child.material.side = THREE.DoubleSide;
-              child.material.roughness = Math.max(0.35, child.material.roughness || 0.6);
+              const m = child.material;
+              if (m.emissiveMap && !m.map) {
+                m.map = m.emissiveMap;
+                m.emissiveMap = null;
+                m.emissive.setHex(0x1a1a24);
+                m.emissiveIntensity = 0.2;
+              }
+              m.color.setHex(0xd0d5dd);
+              m.side = THREE.DoubleSide;
+              m.roughness = 0.85;
+              m.metalness = 0.1;
+              m.needsUpdate = true;
             }
           }
         });
         this.scene.add(cathedral);
         this.cathedralModel = cathedral;
         console.log("Grand Gothic Cathedral 3D Model Loaded & Placed successfully at Celestial Sanctuary!");
-        const altarLight = new THREE.PointLight(0xffdf99, 2.8, 60);
-        altarLight.position.set(0, 38.0, 1075);
+        const altarLight = new THREE.PointLight(0xffdf99, 3.5, 75);
+        altarLight.position.set(0, 42.0, 1075);
         this.scene.add(altarLight);
-        const naveLight1 = new THREE.PointLight(0xffeaad, 1.8, 48);
-        naveLight1.position.set(0, 42.0, 1030);
+        const naveLight1 = new THREE.PointLight(0xffeaad, 2.5, 60);
+        naveLight1.position.set(0, 45.0, 1040);
         this.scene.add(naveLight1);
-        const naveLight2 = new THREE.PointLight(0xffeaad, 1.8, 48);
-        naveLight2.position.set(0, 42.0, 1005);
+        const naveLight2 = new THREE.PointLight(0xffeaad, 2.5, 60);
+        naveLight2.position.set(0, 45.0, 1010);
         this.scene.add(naveLight2);
         if (window.showGameToast) {
-          window.showGameToast("✨ Katedral Suci Celestial Berhasil Dimuat", 3000);
+          window.showGameToast("✨ Katedral Suci Celestial Berhasil Dimuat!", 3500);
         }
       },
-      undefined,
+      (xhr) => {
+        if (xhr && xhr.total > 0 && window.showGameToast) {
+          const pct = Math.round((xhr.loaded / xhr.total) * 100);
+          if (pct === 25 || pct === 50 || pct === 75) {
+            window.showGameToast(`🏛️ Mengunduh Katedral 3D: ${pct}%...`, 1500);
+          }
+        }
+      },
       (err) => {
         console.warn("Cathedral GLB load error:", err);
       }

@@ -9,7 +9,7 @@ class VehiclePhysicsEngine {
     this.mode = "WALKING";
     this.walkerX = 0;
     this.walkerY = 32.05;
-    this.walkerZ = 1010;
+    this.walkerZ = 1060;
     this.walkerRotation = 0;
     this.speed = 0;
     this.lateralVelocity = 0;
@@ -81,7 +81,7 @@ class VehiclePhysicsEngine {
     this.obstacles.push(obstacle);
     return obstacle;
   }
-  resetPosition(x = -5.0, z = 980, rotation = Math.PI) {
+  resetPosition(x = -6.0, z = 1000, rotation = Math.PI) {
     this.x = x;
     this.y = 32.57;
     this.z = z;
@@ -176,7 +176,7 @@ class VehiclePhysicsEngine {
       if (this.walkerY < -10.0) {
         if (window.soundEngine) window.soundEngine.playVoidFallSplash();
         this.walkerX = 0;
-        this.walkerZ = 1010;
+        this.walkerZ = 1060;
         this.walkerY = 32.05;
         this.walkerRotation = 0;
         this.walkerVerticalVel = 0;
@@ -575,7 +575,7 @@ class VehiclePhysicsEngine {
     if (window.soundEngine) {
       window.soundEngine.playVoidFallSplash();
     }
-    this.resetPosition(-5.0, 980, Math.PI);
+    this.resetPosition(-6.0, 1000, Math.PI);
     if (typeof this.onVoidFallCallback === "function") {
       this.onVoidFallCallback();
     }

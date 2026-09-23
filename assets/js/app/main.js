@@ -72,7 +72,7 @@
   let isFpsCounterVisible = false;
   let targetFpsLimit = 0;
   let lastFrameTime = 0;
-  const CHECKPOINT_STORAGE_KEY = "tokyo_cathedral_save_v2";
+  const CHECKPOINT_STORAGE_KEY = "tokyo_cathedral_save_v3";
   let isCharModalOpen = false;
   let fpsFrameCount = 0;
   let lastFpsTime = performance.now();
@@ -1325,7 +1325,7 @@
     }
     if (UI.optUnstuckBtn) {
       UI.optUnstuckBtn.addEventListener("click", () => {
-        physics.resetPosition(-6.0, 980, Math.PI);
+        physics.resetPosition(-6.0, 1000, Math.PI);
         handleVoidFall();
         closeSidebarHub();
       });
@@ -1470,10 +1470,47 @@
       panel.classList.toggle("active", panel.id === `tab-${tabName}`);
     });
   }
+  function teleportToCathedral() {
+    if (!physics) return;
+    physics.walkerX = 0;
+    physics.walkerY = 32.05;
+    physics.walkerZ = 1060;
+    physics.walkerRotation = 0;
+    walkerCameraYaw = 0;
+    cameraPitchOffset = 0;
+    physics.mode = "WALKING";
+    physics.speed = 0;
+    physics.walkerSpeed = 0;
+    physics.x = -6.0;
+    physics.y = 32.57;
+    physics.z = 1000;
+    physics.rotation = Math.PI;
+    if (world && world.walkerGroup) {
+      world.walkerGroup.position.set(0, 32.05, 1060);
+      world.walkerGroup.visible = true;
+    }
+    updateWalkBtnUI();
+    saveCheckpointState();
+    if (window.showGameToast) {
+      window.showGameToast("⛪ Berhasil Teleportasi ke Dalam Aula Katedral!", 2500);
+    }
+  }
+  window.teleportToCathedral = teleportToCathedral;
   function populateHubProjects() {
     if (!UI.hubProjectsList) return;
     const projects = window.APP_CONFIG.PROJECTS;
-    UI.hubProjectsList.innerHTML = projects.map(p => `
+    const cathedralItem = `
+      <div class="hub-project-item" style="display: flex; justify-content: space-between; align-items: center; padding: 0.95rem 1.15rem; background: rgba(245,166,35,0.08); border: 1px solid rgba(245,166,35,0.3); border-radius: 10px; margin-bottom: 0.75rem;">
+        <div>
+          <div style="font-family: var(--font-mono); font-size: 0.68rem; color: #f5a623; letter-spacing: 0.08em; text-transform: uppercase;">CELESTIAL SANCTUARY // SAVE POINT</div>
+          <strong style="font-size: 1.02rem; color: #ffffff; letter-spacing: -0.01em;">🏛️ Grand Gothic Cathedral</strong>
+        </div>
+        <div>
+          <button id="hub-cathedral-teleport-btn" style="padding: 0.45rem 0.85rem; background: var(--neon-amber); color: #000; border: none; border-radius: 6px; font-weight: 700; font-size: 0.78rem; cursor: pointer; transition: all 0.2s;">⚡ TELEPORT</button>
+        </div>
+      </div>
+    `;
+    UI.hubProjectsList.innerHTML = cathedralItem + projects.map(p => `
       <div class="hub-project-item" style="display: flex; justify-content: space-between; align-items: center; padding: 0.95rem 1.15rem; background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; margin-bottom: 0.75rem;">
         <div>
           <div style="font-family: var(--font-mono); font-size: 0.68rem; color: #${p.color.toString(16).padStart(6, '0')}; letter-spacing: 0.08em; text-transform: uppercase;">${p.district}</div>
@@ -1485,6 +1522,13 @@
         </div>
       </div>
     `).join("");
+    const cathBtn = document.getElementById("hub-cathedral-teleport-btn");
+    if (cathBtn) {
+      cathBtn.addEventListener("click", () => {
+        closeSidebarHub();
+        teleportToCathedral();
+      });
+    }
     UI.hubProjectsList.querySelectorAll(".hub-proj-teleport-btn").forEach(b => {
       b.addEventListener("click", () => {
         const id = b.getAttribute("data-id");
@@ -1879,7 +1923,7 @@
     if (audio) audio.playChime();
   }
   function resetVehicle() {
-    physics.resetPosition(-6.0, 980, Math.PI);
+    physics.resetPosition(-6.0, 1000, Math.PI);
     isCinematic = false;
     cinematicTarget = null;
     cameraYawOffset = 0;
@@ -2377,11 +2421,15 @@
   function loadCheckpointState() {
     try {
       const raw = localStorage.getItem(CHECKPOINT_STORAGE_KEY);
-      if (!raw) {
+      let data = null;
+      if (raw) {
+        try { data = JSON.parse(raw); } catch (e) {}
+      }
+      if (!data || typeof data.x !== "number" || (typeof data.z === "number" && data.z < 950)) {
         if (physics) {
           physics.walkerX = 0;
           physics.walkerY = 32.05;
-          physics.walkerZ = 1010;
+          physics.walkerZ = 1060;
           physics.walkerRotation = 0;
           walkerCameraYaw = 0;
           cameraPitchOffset = 0;
@@ -2390,14 +2438,12 @@
           physics.walkerSpeed = 0;
           physics.x = -6.0;
           physics.y = 32.57;
-          physics.z = 980;
+          physics.z = 1000;
           physics.rotation = Math.PI;
         }
         updateWalkBtnUI();
         return;
       }
-      const data = JSON.parse(raw);
-      if (!data || typeof data.x !== "number") return;
       if (data.carType && carModel && data.carType !== carModel.currentCarType) {
         changeCar(data.carType);
       }
