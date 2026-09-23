@@ -3,7 +3,7 @@ class VehiclePhysicsEngine {
     this.config = config || window.APP_CONFIG.CAR;
     this.worldConfig = window.APP_CONFIG.WORLD;
     this.x = 0;
-    this.y = 0.45;
+    this.y = 0.52;
     this.z = -42;
     this.rotation = 0;
     this.speed = 0;
@@ -78,7 +78,7 @@ class VehiclePhysicsEngine {
   }
   resetPosition(x = 0, z = -42, rotation = 0) {
     this.x = x;
-    this.y = 0.45;
+    this.y = 0.52;
     this.z = z;
     this.rotation = rotation;
     this.speed = 0;
@@ -204,8 +204,8 @@ class VehiclePhysicsEngine {
     if (hasInput) {
       const sinC = Math.sin(camAngle);
       const cosC = Math.cos(camAngle);
-      moveDirX = sinC * forwardInput + cosC * rightInput;
-      moveDirZ = cosC * forwardInput - sinC * rightInput;
+      moveDirX = sinC * forwardInput - cosC * rightInput;
+      moveDirZ = cosC * forwardInput + sinC * rightInput;
       const len = Math.hypot(moveDirX, moveDirZ);
       if (len > 0.001) {
         moveDirX /= len;
@@ -552,7 +552,8 @@ class VehiclePhysicsEngine {
         this.triggerVoidFall();
       }
     } else {
-      const targetRideHeight = groundY + 0.45;
+      const antiSinkLift = Math.abs(Math.sin(this.roll)) * 0.85 + Math.max(0, Math.sin(this.pitch)) * 1.1;
+      const targetRideHeight = groundY + 0.52 + antiSinkLift;
       if (this.isAirborne) {
         this.verticalVelocity -= 26.0 * dt;
         this.y += this.verticalVelocity * dt;
@@ -585,11 +586,14 @@ class VehiclePhysicsEngine {
       slopePitch = -Math.cos(this.rotation) * rampIncline;
     }
     const airbrakeDip = this.isAirbraking ? 0.045 : 0;
-    const targetPitch = slopePitch + (this.isAccelerating ? -0.075 : 0) + (this.isBraking ? (0.095 + airbrakeDip) : 0);
+    const rawPitch = (this.isAccelerating ? -0.025 : 0) + (this.isBraking ? (0.035 + airbrakeDip * 0.3) : 0);
+    const maxPitch = 0.042;
+    const targetPitch = slopePitch + Math.max(-maxPitch, Math.min(maxPitch, rawPitch));
     const lateralG = (this.speed / this.config.MAX_SPEED) * (this.angularVelocity / 1.5);
-    const targetRoll = -lateralG * 0.12;
-    this.pitch += (targetPitch - this.pitch) * 9.5 * dt;
-    this.roll += (targetRoll - this.roll) * 9.5 * dt;
+    const maxRoll = 0.038;
+    const targetRoll = Math.max(-maxRoll, Math.min(maxRoll, -lateralG * 0.035));
+    this.pitch += (targetPitch - this.pitch) * 12.0 * dt;
+    this.roll += (targetRoll - this.roll) * 12.0 * dt;
   }
   resolveObstacles(dt) {
     const carRadius = 1.5;

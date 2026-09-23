@@ -1224,7 +1224,7 @@
       UI.charSkillBtn.style.display = isWalking ? "inline-flex" : "none";
     }
     if (UI.changeCarBtn) {
-      UI.changeCarBtn.style.display = isWalking ? "none" : "inline-flex";
+      UI.changeCarBtn.style.display = "inline-flex";
     }
   }
   window.updateWalkBtnUI = updateWalkBtnUI;
@@ -1295,6 +1295,20 @@
           panel.classList.toggle("open");
         }
         if (audio) audio.playChime();
+      });
+    }
+    const optGarageBtn = document.getElementById("opt-garage-btn");
+    if (optGarageBtn) {
+      optGarageBtn.addEventListener("click", () => {
+        closeSidebarHub();
+        openGarageModal();
+      });
+    }
+    const optCharacterBtn = document.getElementById("opt-character-btn");
+    if (optCharacterBtn) {
+      optCharacterBtn.addEventListener("click", () => {
+        closeSidebarHub();
+        toggleCharacterModal();
       });
     }
     if (UI.optFpsBtn) {
