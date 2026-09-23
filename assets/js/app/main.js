@@ -35,7 +35,23 @@
   let isCarTransitioning = false;
   const transitionCamPos = new THREE.Vector3();
   const transitionCamLook = new THREE.Vector3();
-  let isHighQuality = true;
+  const QUALITY_MODES = {
+    AUTO: "AUTO",
+    HIGH: "HIGH",
+    MEDIUM: "MEDIUM",
+    LOW: "LOW"
+  };
+  const QUALITY_CYCLE = [QUALITY_MODES.AUTO, QUALITY_MODES.HIGH, QUALITY_MODES.MEDIUM, QUALITY_MODES.LOW];
+  let currentQualityModeIndex = 0;
+  let activeResolvedQuality = QUALITY_MODES.HIGH;
+  let isFpsCounterVisible = false;
+  let fpsFrameCount = 0;
+  let lastFpsTime = performance.now();
+  let currentFps = 60;
+  let lowFpsStreak = 0;
+  let highFpsStreak = 0;
+  const LOW_FPS_THRESHOLD = 32;
+  const HIGH_FPS_THRESHOLD = 57;
   let activeStation = null;
   let isCheckpointPillVisible = false;
   const UI = {
@@ -69,6 +85,8 @@
     closeHubBtn: null,
     optAudioBtn: null,
     optQualityBtn: null,
+    optFpsBtn: null,
+    hudFpsBadge: null,
     optCameraBtn: null,
     optUnstuckBtn: null,
     optResetBtn: null,
@@ -153,6 +171,7 @@
     setupEventHandlers();
     setupCameraOrbitControls();
     setupTouchControls();
+    applyQualityTier(QUALITY_MODES.AUTO, false);
     requestAnimationFrame(renderLoop);
   }
   function cacheDOMElements() {
@@ -188,6 +207,8 @@
     UI.closeHubBtn = document.getElementById("btn-close-hub");
     UI.optAudioBtn = document.getElementById("opt-audio-toggle");
     UI.optQualityBtn = document.getElementById("opt-quality-toggle");
+    UI.optFpsBtn = document.getElementById("opt-fps-toggle");
+    UI.hudFpsBadge = document.getElementById("hud-fps-badge");
     UI.optCameraBtn = document.getElementById("opt-camera-toggle");
     UI.optUnstuckBtn = document.getElementById("opt-unstuck-btn");
     UI.optResetBtn = document.getElementById("opt-reset-btn");
@@ -251,6 +272,9 @@
     window.radar = radar;
     window.camera = camera;
     window.renderer = renderer;
+    window.QUALITY_MODES = QUALITY_MODES;
+    window.applyQualityTier = applyQualityTier;
+    window.getFPS = () => currentFps;
   }
   function setupCelestialGate() {
     if (UI.walkPrompt) {
@@ -1115,11 +1139,16 @@
     }
     if (UI.optQualityBtn) {
       UI.optQualityBtn.addEventListener("click", () => {
-        isHighQuality = !isHighQuality;
-        const targetRatio = isHighQuality ? 1.5 : 1.0;
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, targetRatio));
-        renderer.shadowMap.enabled = isHighQuality;
-        UI.optQualityBtn.textContent = isHighQuality ? "Tinggi" : "Sedang";
+        currentQualityModeIndex = (currentQualityModeIndex + 1) % QUALITY_CYCLE.length;
+        const nextMode = QUALITY_CYCLE[currentQualityModeIndex];
+        applyQualityTier(nextMode, false);
+        if (audio) audio.playChime();
+      });
+    }
+    if (UI.optFpsBtn) {
+      UI.optFpsBtn.addEventListener("click", () => {
+        isFpsCounterVisible = !isFpsCounterVisible;
+        updateFpsUI(currentFps);
         if (audio) audio.playChime();
       });
     }
@@ -1158,6 +1187,96 @@
       });
     });
     populateHubProjects();
+  }
+  function applyQualityTier(targetMode, isAutoTriggered = false) {
+    let resolvedTier = targetMode;
+    if (targetMode === QUALITY_MODES.AUTO) {
+      resolvedTier = activeResolvedQuality || QUALITY_MODES.HIGH;
+    } else {
+      activeResolvedQuality = targetMode;
+    }
+    let targetDpr = 1.0;
+    if (resolvedTier === QUALITY_MODES.HIGH) {
+      targetDpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    } else if (resolvedTier === QUALITY_MODES.MEDIUM) {
+      targetDpr = Math.min(window.devicePixelRatio || 1, 1.0);
+    } else {
+      targetDpr = Math.min(window.devicePixelRatio || 1, 0.85);
+    }
+    if (renderer) {
+      renderer.setPixelRatio(targetDpr);
+      renderer.shadowMap.enabled = (resolvedTier === QUALITY_MODES.HIGH);
+    }
+    if (world && typeof world.setQualityTier === "function") {
+      world.setQualityTier(resolvedTier, camera);
+    }
+    if (carModel && typeof carModel.setContactShadow === "function") {
+      carModel.setContactShadow(resolvedTier !== QUALITY_MODES.HIGH);
+    }
+    updateQualityButtonLabel();
+    if (isAutoTriggered) {
+      const toastMsg = (resolvedTier === QUALITY_MODES.MEDIUM)
+        ? (window.I18N ? window.I18N.getText("hub.toastQualityAutoDowngrade") : "⚡ Mode Sedang diaktifkan otomatis agar 60 FPS tetap mulus!")
+        : (window.I18N ? window.I18N.getText("hub.toastQualityLowDowngrade") : "⚡ Mode Hemat Daya diaktifkan otomatis agar bebas lag!");
+      showGameToast(toastMsg, 3500);
+    }
+  }
+  function updateQualityButtonLabel() {
+    if (!UI.optQualityBtn) return;
+    const currentMode = QUALITY_CYCLE[currentQualityModeIndex];
+    const t = (window.I18N && window.I18N.translations && window.I18N.translations[window.I18N.currentLang])
+      ? window.I18N.translations[window.I18N.currentLang].hub
+      : null;
+    let tierLabel = "";
+    if (activeResolvedQuality === QUALITY_MODES.HIGH) tierLabel = t ? t.qualityHigh : "Tinggi";
+    else if (activeResolvedQuality === QUALITY_MODES.MEDIUM) tierLabel = t ? t.qualityMed : "Sedang";
+    else tierLabel = t ? t.qualityLow : "Hemat Daya";
+    if (currentMode === QUALITY_MODES.AUTO) {
+      const autoText = t ? t.qualityAuto : "Auto (Adaptif)";
+      UI.optQualityBtn.textContent = `${autoText} [${tierLabel}]`;
+      UI.optQualityBtn.classList.add("quality-auto");
+    } else {
+      UI.optQualityBtn.textContent = tierLabel;
+      UI.optQualityBtn.classList.remove("quality-auto");
+    }
+  }
+  window.updateQualityButtonLabel = updateQualityButtonLabel;
+  function updateFpsUI(fps) {
+    if (UI.hudFpsBadge) {
+      UI.hudFpsBadge.textContent = `${fps} FPS • ${activeResolvedQuality}`;
+      UI.hudFpsBadge.className = `hud-fps-badge ${fps < 35 ? "low" : (fps < 50 ? "med" : "high")}`;
+      UI.hudFpsBadge.style.display = isFpsCounterVisible ? "inline-flex" : "none";
+    }
+    if (UI.optFpsBtn) {
+      UI.optFpsBtn.textContent = isFpsCounterVisible ? "ON" : "OFF";
+      UI.optFpsBtn.classList.toggle("active", isFpsCounterVisible);
+    }
+  }
+  function checkAdaptiveGovernor(fps) {
+    const currentMode = QUALITY_CYCLE[currentQualityModeIndex];
+    if (currentMode !== QUALITY_MODES.AUTO) return;
+    if (fps < LOW_FPS_THRESHOLD) {
+      lowFpsStreak++;
+      highFpsStreak = 0;
+      if (lowFpsStreak >= 2) {
+        if (activeResolvedQuality === QUALITY_MODES.HIGH) {
+          applyQualityTier(QUALITY_MODES.MEDIUM, true);
+        } else if (activeResolvedQuality === QUALITY_MODES.MEDIUM) {
+          applyQualityTier(QUALITY_MODES.LOW, true);
+        }
+        lowFpsStreak = 0;
+      }
+    } else if (fps >= HIGH_FPS_THRESHOLD) {
+      highFpsStreak++;
+      lowFpsStreak = 0;
+      if (highFpsStreak >= 12 && activeResolvedQuality === QUALITY_MODES.LOW) {
+        applyQualityTier(QUALITY_MODES.MEDIUM, false);
+        highFpsStreak = 0;
+      }
+    } else {
+      lowFpsStreak = 0;
+      highFpsStreak = 0;
+    }
   }
   function openSidebarHub(tabName = "options") {
     if (!UI.hubModal) return;
@@ -1848,6 +1967,15 @@
         radar.render(physics, dt);
       }
       renderer.render(scene, camera);
+      fpsFrameCount++;
+      const currentNow = performance.now();
+      if (currentNow - lastFpsTime >= 1000) {
+        currentFps = Math.round((fpsFrameCount * 1000) / (currentNow - lastFpsTime));
+        fpsFrameCount = 0;
+        lastFpsTime = currentNow;
+        updateFpsUI(currentFps);
+        checkAdaptiveGovernor(currentFps);
+      }
     } catch (renderErr) {
       console.warn("Non-fatal frame error caught, continuing render:", renderErr);
     }

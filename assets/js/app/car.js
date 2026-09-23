@@ -68,6 +68,8 @@ class SportsCarModel {
     this.seatedDriver = null;
     this.currentSpoilerAngle = 0;
     this.wheelRollAngle = 0;
+    this.contactShadow = this.createContactShadowMesh();
+    this.rootGroup.add(this.contactShadow);
     this.buildCar();
     this.scene.add(this.rootGroup);
   }
@@ -851,6 +853,37 @@ class SportsCarModel {
     cabin.position.set(0, 0.98, -0.15);
     this.chassisGroup.add(cabin);
     this.setupLightingSystems();
+  }
+  createContactShadowMesh() {
+    const canvas = document.createElement("canvas");
+    canvas.width = 128;
+    canvas.height = 256;
+    const ctx = canvas.getContext("2d");
+    const grad = ctx.createRadialGradient(64, 128, 20, 64, 128, 115);
+    grad.addColorStop(0, "rgba(0, 0, 0, 0.82)");
+    grad.addColorStop(0.35, "rgba(0, 0, 0, 0.55)");
+    grad.addColorStop(0.7, "rgba(0, 0, 0, 0.2)");
+    grad.addColorStop(1, "rgba(0, 0, 0, 0)");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 128, 256);
+    const texture = new THREE.CanvasTexture(canvas);
+    const shadowGeo = new THREE.PlaneGeometry(2.4, 4.9);
+    const shadowMat = new THREE.MeshBasicMaterial({
+      map: texture,
+      transparent: true,
+      opacity: 0.85,
+      depthWrite: false
+    });
+    const mesh = new THREE.Mesh(shadowGeo, shadowMat);
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.position.set(0, 0.025, 0);
+    mesh.visible = false;
+    return mesh;
+  }
+  setContactShadow(visible) {
+    if (this.contactShadow) {
+      this.contactShadow.visible = Boolean(visible);
+    }
   }
 }
 window.SportsCarModel = SportsCarModel;

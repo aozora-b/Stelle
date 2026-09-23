@@ -36,8 +36,13 @@ const I18N = {
         lblMode: "Mode Kemudi",
         btnDrive: "🎮 Manual",
         btnCruise: "✨ Sinematik",
+        lblFps: "Indikator FPS",
+        qualityAuto: "Auto (Adaptif)",
         qualityHigh: "Tinggi",
-        qualityMed: "Sedang"
+        qualityMed: "Sedang",
+        qualityLow: "Hemat Daya",
+        toastQualityAutoDowngrade: "⚡ Mode Sedang diaktifkan otomatis agar 60 FPS tetap mulus!",
+        toastQualityLowDowngrade: "⚡ Mode Hemat Daya diaktifkan otomatis agar bebas lag!"
       },
       pill: {
         openBtn: "Buka Detail (ENTER) →",
@@ -200,8 +205,13 @@ const I18N = {
         lblMode: "Drive Mode",
         btnDrive: "🎮 Manual",
         btnCruise: "✨ Cruise",
+        lblFps: "FPS Indicator",
+        qualityAuto: "Auto (Adaptive)",
         qualityHigh: "High",
-        qualityMed: "Medium"
+        qualityMed: "Medium",
+        qualityLow: "Battery Saver",
+        toastQualityAutoDowngrade: "⚡ Auto-switched to Medium quality for smooth 60 FPS!",
+        toastQualityLowDowngrade: "⚡ Auto-switched to Battery Saver mode to eliminate lag!"
       },
       pill: {
         openBtn: "View Details (ENTER) →",
@@ -364,8 +374,13 @@ const I18N = {
         lblMode: "走行モード",
         btnDrive: "🎮 手動運転",
         btnCruise: "✨ 自動クルーズ",
+        lblFps: "FPS表示",
+        qualityAuto: "自動 (適応型)",
         qualityHigh: "高画質",
-        qualityMed: "標準"
+        qualityMed: "標準",
+        qualityLow: "省電力",
+        toastQualityAutoDowngrade: "⚡ 60FPSを維持するため標準モードに自動最適化しました！",
+        toastQualityLowDowngrade: "⚡ カクつき防止のため省電力モードに自動最適化しました！"
       },
       pill: {
         openBtn: "詳細を見る (ENTER) →",
@@ -554,6 +569,10 @@ const I18N = {
       setTxt("lbl-opt-reset", t.hub.lblReset);
       setTxt("opt-reset-btn", t.hub.btnReset);
       setTxt("lbl-opt-mode", t.hub.lblMode);
+      setTxt("lbl-opt-fps", t.hub.lblFps);
+      if (typeof window.updateQualityButtonLabel === "function") {
+        window.updateQualityButtonLabel();
+      }
       const modeToggle = document.getElementById("opt-mode-toggle");
       if (modeToggle) {
         const isCruise = modeToggle.classList.contains("cruise-active");

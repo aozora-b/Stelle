@@ -351,23 +351,7 @@ class TokyoCityWorld {
         } catch (err) {
           console.warn("Base64 decode CCITY failed:", err);
         }
-      } else {
-        loader.load("assets/assets/building bangunan/ccity_building_set_1.glb", (gltf) => {
-        }, undefined, (err) => console.warn(err));
       }
-      loader.load("assets/assets/building bangunan/fixed_new_york_highway_interstate_95.glb", (hGltf) => {
-        const hw = hGltf.scene;
-        hw.scale.set(0.012, 0.012, 0.012);
-        hw.position.set(380, 0.05, 160);
-        hw.rotation.y = Math.PI / 4;
-        hw.traverse((c) => {
-          if (c.isMesh) {
-            c.receiveShadow = true;
-            if (c.material) c.material.roughness = 0.6;
-          }
-        });
-        this.scene.add(hw);
-      }, undefined, () => {});
     }
     this.createDetailedTokyoSkylineBackdrop(isLocationClear);
   }
@@ -587,6 +571,8 @@ class TokyoCityWorld {
     ];
     treePositions.forEach(pos => this.createSakuraTree(pos.x, pos.z));
     const petalCount = 600;
+    this.maxPetalCount = 600;
+    this.activePetalCount = 600;
     const petalGeo = new THREE.BufferGeometry();
     const positions = new Float32Array(petalCount * 3);
     const velocities = new Float32Array(petalCount * 3);
@@ -712,6 +698,8 @@ class TokyoCityWorld {
   }
   createRainSystem() {
     const rainCount = 1500;
+    this.maxRainCount = 1500;
+    this.activeRainCount = 1500;
     const rainGeo = new THREE.BufferGeometry();
     const positions = new Float32Array(rainCount * 3);
     for (let i = 0; i < rainCount; i++) {
@@ -995,11 +983,13 @@ class TokyoCityWorld {
     const preset = window.APP_CONFIG.WEATHER[weatherKey];
     if (!preset) return;
     this.currentWeather = weatherKey;
+    const fogMult = this.fogMultiplier || 1.0;
+    const computedDensity = preset.fogDensity * fogMult;
     if (this.scene.fog) {
       this.scene.fog.color.setHex(preset.fogColor);
-      this.scene.fog.density = preset.fogDensity;
+      this.scene.fog.density = computedDensity;
     } else {
-      this.scene.fog = new THREE.FogExp2(preset.fogColor, preset.fogDensity);
+      this.scene.fog = new THREE.FogExp2(preset.fogColor, computedDensity);
     }
     if (this.scene.background) {
       this.scene.background.setHex(preset.skyColor);
@@ -1032,6 +1022,47 @@ class TokyoCityWorld {
     const nextKey = keys[(currentIndex + 1) % keys.length];
     this.applyWeather(nextKey);
     return nextKey;
+  }
+  setQualityTier(tier, camera) {
+    this.qualityTier = tier;
+    const isHigh = (tier === "HIGH");
+    const isMed = (tier === "MEDIUM");
+    const isLow = (tier === "LOW");
+    if (this.sunLight) {
+      this.sunLight.castShadow = isHigh;
+    }
+    if (this.walkerContactShadow) {
+      this.walkerContactShadow.visible = !isHigh;
+    }
+    if (isHigh) {
+      this.activePetalCount = 600;
+      this.activeRainCount = 1500;
+      this.fogMultiplier = 1.0;
+      if (camera) camera.far = 900;
+    } else if (isMed) {
+      this.activePetalCount = 200;
+      this.activeRainCount = 500;
+      this.fogMultiplier = 1.35;
+      if (camera) camera.far = 600;
+    } else {
+      this.activePetalCount = 60;
+      this.activeRainCount = 150;
+      this.fogMultiplier = 1.85;
+      if (camera) camera.far = 420;
+    }
+    if (camera && typeof camera.updateProjectionMatrix === "function") {
+      camera.updateProjectionMatrix();
+    }
+    if (this.sakuraPetals && this.sakuraPetals.geometry) {
+      this.sakuraPetals.geometry.setDrawRange(0, this.activePetalCount);
+    }
+    if (this.rainParticles && this.rainParticles.geometry) {
+      this.rainParticles.geometry.setDrawRange(0, this.activeRainCount);
+    }
+    const preset = (window.APP_CONFIG && window.APP_CONFIG.WEATHER) ? window.APP_CONFIG.WEATHER[this.currentWeather] : null;
+    if (preset && this.scene.fog) {
+      this.scene.fog.density = preset.fogDensity * this.fogMultiplier;
+    }
   }
   addSkidMark(x, z, angle) {
     const geo = new THREE.PlaneGeometry(0.42, 0.85);
@@ -1069,7 +1100,8 @@ class TokyoCityWorld {
     if (this.sakuraPetals && this.sakuraPetals.visible && carPos) {
       const pos = this.sakuraPetals.geometry.attributes.position.array;
       const vel = this.sakuraPetals.geometry.attributes.velocity.array;
-      for (let i = 0; i < pos.length; i += 3) {
+      const petalLimit = Math.min(pos.length, (this.activePetalCount || 600) * 3);
+      for (let i = 0; i < petalLimit; i += 3) {
         pos[i] += Math.sin(time * 1.5 + i) * 0.18 + vel[i] * dt;
         pos[i + 1] += vel[i + 1] * dt * 5.0;
         pos[i + 2] += Math.cos(time * 1.2 + i) * 0.15 + vel[i + 2] * dt;
@@ -1083,7 +1115,8 @@ class TokyoCityWorld {
     }
     if (this.rainParticles && this.rainParticles.visible && carPos) {
       const pos = this.rainParticles.geometry.attributes.position.array;
-      for (let i = 1; i < pos.length; i += 3) {
+      const rainLimit = Math.min(pos.length, (this.activeRainCount || 1500) * 3);
+      for (let i = 1; i < rainLimit; i += 3) {
         pos[i] -= dt * 65;
         if (pos[i] < 0) pos[i] = 80;
       }
@@ -2264,6 +2297,25 @@ class TokyoCityWorld {
       }
     }
     this.createCharacterNameplate();
+    const walkerCanvas = document.createElement("canvas");
+    walkerCanvas.width = 128;
+    walkerCanvas.height = 128;
+    const wCtx = walkerCanvas.getContext("2d");
+    const wGrad = wCtx.createRadialGradient(64, 64, 10, 64, 64, 60);
+    wGrad.addColorStop(0, "rgba(0, 0, 0, 0.75)");
+    wGrad.addColorStop(0.4, "rgba(0, 0, 0, 0.45)");
+    wGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
+    wCtx.fillStyle = wGrad;
+    wCtx.fillRect(0, 0, 128, 128);
+    const wTex = new THREE.CanvasTexture(walkerCanvas);
+    this.walkerContactShadow = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.95, 0.95),
+      new THREE.MeshBasicMaterial({ map: wTex, transparent: true, opacity: 0.8, depthWrite: false })
+    );
+    this.walkerContactShadow.rotation.x = -Math.PI / 2;
+    this.walkerContactShadow.position.set(0, 0.02, 0);
+    this.walkerContactShadow.visible = false;
+    this.walkerGroup.add(this.walkerContactShadow);
     this.walker = this.walkerGroup;
     this.minatoContainer = this.minatoAvatarGroup;
     this.miyuContainer = this.miyuAvatarGroup;

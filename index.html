@@ -18,6 +18,7 @@
   <header class="top-hud">
     <div class="brand-badge">
       <a href="#" class="brand-logo">STELLE<span>.3D</span></a>
+      <div id="hud-fps-badge" class="hud-fps-badge" style="display:none;">60 FPS</div>
     </div>
     <div class="top-actions">
       <button id="btn-toggle-walk" class="hud-btn hud-btn-icon" title="Keluar / Masuk Mobil (F)">🚶 TURUN</button>
@@ -53,7 +54,11 @@
           </div>
           <div class="hub-option-row">
             <span class="hub-option-label" id="lbl-opt-quality">Kualitas</span>
-            <button id="opt-quality-toggle" class="hub-option-btn">Tinggi</button>
+            <button id="opt-quality-toggle" class="hub-option-btn">Auto (Adaptif)</button>
+          </div>
+          <div class="hub-option-row">
+            <span class="hub-option-label" id="lbl-opt-fps">Indikator FPS</span>
+            <button id="opt-fps-toggle" class="hub-option-btn">OFF</button>
           </div>
           <div class="hub-option-row">
             <span class="hub-option-label" id="lbl-opt-camera">Mode Kamera</span>
