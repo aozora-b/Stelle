@@ -47,6 +47,22 @@ class VehiclePhysicsEngine {
     this.obstacles = [];
     this.customHeightProvider = null;
     this.onVoidFallCallback = null;
+    this.setupCathedralColliders();
+  }
+  setupCathedralColliders() {
+    this.addStaticCollider(-38.0, -7.2, 1028.5, 1031.5, 55.0, "cathedral_wall_left", 31.5);
+    this.addStaticCollider(7.2, 38.0, 1028.5, 1031.5, 55.0, "cathedral_wall_right", 31.5);
+    this.addStaticCollider(-20.0, -17.5, 1031.0, 1064.0, 55.0, "cathedral_nave_left_1", 31.5);
+    this.addStaticCollider(-20.0, -17.5, 1076.0, 1118.0, 55.0, "cathedral_nave_left_2", 31.5);
+    this.addStaticCollider(17.5, 20.0, 1031.0, 1118.0, 55.0, "cathedral_nave_right", 31.5);
+    this.addStaticCollider(-20.0, 20.0, 1116.0, 1120.0, 55.0, "cathedral_nave_back", 31.5);
+    this.updateCathedralGateCollider(false);
+  }
+  updateCathedralGateCollider(isOpen) {
+    this.staticColliders = this.staticColliders.filter(c => c.label !== "cathedral_main_gate");
+    if (!isOpen) {
+      this.addStaticCollider(-7.3, 7.3, 1029.2, 1030.8, 55.0, "cathedral_main_gate", 31.5);
+    }
   }
   addStaticCollider(minX, maxX, minZ, maxZ, height = 50, label = "building", minY = -5.0) {
     this.staticColliders.push({
@@ -113,6 +129,9 @@ class VehiclePhysicsEngine {
       if (customElev !== null && customElev !== undefined) {
         return customElev;
       }
+    }
+    if ((this.walkerY > 50.0 || this.y > 50.0) && z >= 1032 && z <= 1120 && Math.abs(x) <= 30.0) {
+      return 78.05;
     }
     if (z >= 950 && z <= 1200 && Math.abs(x) <= 90.0) {
       return 32.05;

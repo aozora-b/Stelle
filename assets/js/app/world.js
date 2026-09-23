@@ -1101,6 +1101,31 @@ class TokyoCityWorld {
         ring.rotation.z += dt * (i % 2 === 0 ? 0.65 : -0.85);
       });
     }
+    if (this.leftGatePivot && this.rightGatePivot) {
+      const targetLeft = this.isCathedralGateOpen ? -1.45 : 0;
+      const targetRight = this.isCathedralGateOpen ? 1.45 : 0;
+      this.leftGatePivot.rotation.y = THREE.MathUtils.lerp(this.leftGatePivot.rotation.y, targetLeft, Math.min(1.0, 4.5 * dt));
+      this.rightGatePivot.rotation.y = THREE.MathUtils.lerp(this.rightGatePivot.rotation.y, targetRight, Math.min(1.0, 4.5 * dt));
+    }
+    if (this.interactiveBadges && this.interactiveBadges.length > 0) {
+      this.interactiveBadges.forEach((badge, idx) => {
+        badge.position.y += Math.sin(time * 3.2 + idx) * 0.005;
+        if (badge.userData && badge.userData.diamond) {
+          badge.userData.diamond.rotation.y += dt * 1.5;
+        }
+        if (badge.userData && badge.userData.ring) {
+          badge.userData.ring.rotation.z += dt * 1.2;
+        }
+      });
+    }
+    if (this.upperPalaceCrystal) {
+      this.upperPalaceCrystal.rotation.y += dt * 0.8;
+      this.upperPalaceCrystal.rotation.x += dt * 0.4;
+      this.upperPalaceCrystal.position.y = 4.8 + Math.sin(time * 2.0) * 0.15;
+    }
+    if (this.upperDoorEnergy) {
+      this.upperDoorEnergy.material.opacity = 0.35 + Math.sin(time * 3.5) * 0.15;
+    }
     if (this.celestialImages) {
       this.celestialImages.forEach((item, idx) => {
         if (item.userData.isDocked) {
@@ -1802,6 +1827,10 @@ class TokyoCityWorld {
     });
     parent.add(platform);
     this.loadCathedralModelAsync();
+    this.createCathedralGrandGate(platform);
+    this.createCathedralRoyalGarage(platform);
+    this.createUpperCathedralSkyPalace(platform);
+    this.createUpperCathedralAscensionDoor(platform);
   }
   loadCathedralModelAsync() {
     if (this._cathedralLoaded || typeof THREE.GLTFLoader !== "function") return;
@@ -1868,6 +1897,519 @@ class TokyoCityWorld {
         console.warn("Cathedral GLB load error:", err);
       }
     );
+  }
+  createFloatingGameBadge(symbol, colorHex = 0xf5a623) {
+    const badgeGroup = new THREE.Group();
+    const diamondGeo = new THREE.OctahedronGeometry(0.65, 0);
+    const diamondMat = new THREE.MeshStandardMaterial({
+      color: colorHex,
+      emissive: colorHex,
+      emissiveIntensity: 0.95,
+      metalness: 0.3,
+      roughness: 0.2
+    });
+    const diamond = new THREE.Mesh(diamondGeo, diamondMat);
+    badgeGroup.add(diamond);
+    const ringGeo = new THREE.TorusGeometry(0.95, 0.08, 12, 32);
+    const ringMat = new THREE.MeshBasicMaterial({ color: colorHex, transparent: true, opacity: 0.85 });
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.rotation.x = Math.PI / 2;
+    badgeGroup.add(ring);
+    const canvas = document.createElement("canvas");
+    canvas.width = 128;
+    canvas.height = 128;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "rgba(10, 16, 30, 0.88)";
+    ctx.beginPath();
+    ctx.arc(64, 64, 56, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#" + colorHex.toString(16).padStart(6, "0");
+    ctx.lineWidth = 8;
+    ctx.stroke();
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 64px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(symbol, 64, 66);
+    const tex = new THREE.CanvasTexture(canvas);
+    const spriteMat = new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0.95 });
+    const sprite = new THREE.Sprite(spriteMat);
+    sprite.scale.set(1.3, 1.3, 1.3);
+    sprite.position.y = 1.25;
+    badgeGroup.add(sprite);
+    badgeGroup.userData = {
+      baseY: 0,
+      ring: ring,
+      diamond: diamond
+    };
+    if (!this.interactiveBadges) this.interactiveBadges = [];
+    this.interactiveBadges.push(badgeGroup);
+    return badgeGroup;
+  }
+  createCathedralGrandGate(parent) {
+    const gateGroup = new THREE.Group();
+    gateGroup.position.set(0, 32.05, 1030.0);
+    this.isCathedralGateOpen = false;
+    const archMat = new THREE.MeshStandardMaterial({
+      color: 0x222a38,
+      roughness: 0.85,
+      metalness: 0.2
+    });
+    const archPillarGeo = new THREE.BoxGeometry(2.0, 16.0, 2.8);
+    const leftPillar = new THREE.Mesh(archPillarGeo, archMat);
+    leftPillar.position.set(-8.2, 8.0, 0);
+    const rightPillar = new THREE.Mesh(archPillarGeo, archMat);
+    rightPillar.position.set(8.2, 8.0, 0);
+    gateGroup.add(leftPillar, rightPillar);
+    const archLintelGeo = new THREE.BoxGeometry(18.4, 2.5, 3.0);
+    const lintel = new THREE.Mesh(archLintelGeo, archMat);
+    lintel.position.set(0, 16.25, 0);
+    gateGroup.add(lintel);
+    const tympanumGeo = new THREE.ConeGeometry(9.2, 5.0, 4);
+    tympanumGeo.rotateY(Math.PI / 4);
+    const tympanum = new THREE.Mesh(tympanumGeo, archMat);
+    tympanum.position.set(0, 20.0, 0);
+    gateGroup.add(tympanum);
+    const wallGeo = new THREE.BoxGeometry(31.0, 24.0, 2.4);
+    const wallL = new THREE.Mesh(wallGeo, archMat);
+    wallL.position.set(-24.5, 12.0, 0);
+    const wallR = new THREE.Mesh(wallGeo, archMat);
+    wallR.position.set(24.5, 12.0, 0);
+    gateGroup.add(wallL, wallR);
+    const ironMat = new THREE.MeshStandardMaterial({
+      color: 0x161a22,
+      metalness: 0.88,
+      roughness: 0.3
+    });
+    const goldMat = new THREE.MeshStandardMaterial({
+      color: 0xf5a623,
+      metalness: 0.85,
+      roughness: 0.2,
+      emissive: 0x553300,
+      emissiveIntensity: 0.3
+    });
+    const doorWidth = 7.1;
+    const doorHeight = 14.8;
+    const doorThickness = 0.55;
+    this.leftGatePivot = new THREE.Group();
+    this.leftGatePivot.position.set(-7.15, 0, 0);
+    const leftDoorMesh = new THREE.Mesh(new THREE.BoxGeometry(doorWidth, doorHeight, doorThickness), ironMat);
+    leftDoorMesh.position.set(doorWidth / 2, doorHeight / 2, 0);
+    leftDoorMesh.castShadow = true;
+    leftDoorMesh.receiveShadow = true;
+    this.leftGatePivot.add(leftDoorMesh);
+    [-4.5, -1.5, 1.5, 4.5].forEach(yOffset => {
+      const band = new THREE.Mesh(new THREE.BoxGeometry(doorWidth + 0.1, 0.45, doorThickness + 0.15), goldMat);
+      band.position.set(doorWidth / 2, doorHeight / 2 + yOffset, 0);
+      this.leftGatePivot.add(band);
+    });
+    const ringGeo = new THREE.TorusGeometry(0.7, 0.12, 12, 24);
+    const leftRing = new THREE.Mesh(ringGeo, goldMat);
+    leftRing.position.set(doorWidth - 1.2, 6.5, doorThickness / 2 + 0.15);
+    this.leftGatePivot.add(leftRing);
+    gateGroup.add(this.leftGatePivot);
+    this.rightGatePivot = new THREE.Group();
+    this.rightGatePivot.position.set(7.15, 0, 0);
+    const rightDoorMesh = new THREE.Mesh(new THREE.BoxGeometry(doorWidth, doorHeight, doorThickness), ironMat);
+    rightDoorMesh.position.set(-doorWidth / 2, doorHeight / 2, 0);
+    rightDoorMesh.castShadow = true;
+    rightDoorMesh.receiveShadow = true;
+    this.rightGatePivot.add(rightDoorMesh);
+    [-4.5, -1.5, 1.5, 4.5].forEach(yOffset => {
+      const band = new THREE.Mesh(new THREE.BoxGeometry(doorWidth + 0.1, 0.45, doorThickness + 0.15), goldMat);
+      band.position.set(-doorWidth / 2, doorHeight / 2 + yOffset, 0);
+      this.rightGatePivot.add(band);
+    });
+    const rightRing = new THREE.Mesh(ringGeo, goldMat);
+    rightRing.position.set(-doorWidth + 1.2, 6.5, doorThickness / 2 + 0.15);
+    this.rightGatePivot.add(rightRing);
+    gateGroup.add(this.rightGatePivot);
+    [-8.2, 8.2].forEach(tx => {
+      const lantern = new THREE.PointLight(0xffaa44, 2.5, 30);
+      lantern.position.set(tx, 14.0, 1.8);
+      gateGroup.add(lantern);
+      const lanternMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.5, 1.4, 8), goldMat);
+      lanternMesh.position.set(tx, 14.0, 1.8);
+      gateGroup.add(lanternMesh);
+    });
+    this.gateInteractiveBadge = this.createFloatingGameBadge("!", 0xf5a623);
+    this.gateInteractiveBadge.position.set(0, 10.5, 0);
+    gateGroup.add(this.gateInteractiveBadge);
+    parent.add(gateGroup);
+    this.cathedralGateGroup = gateGroup;
+  }
+  toggleCathedralGates() {
+    this.isCathedralGateOpen = !this.isCathedralGateOpen;
+    if (window.audio && typeof window.audio.playChime === "function") {
+      window.audio.playChime();
+    }
+    if (window.showGameToast) {
+      window.showGameToast(
+        this.isCathedralGateOpen
+          ? "🚪 Gerbang Raksasa Katedral Terbuka! Silakan lewat."
+          : "🚪 Gerbang Raksasa Katedral Tertutup rapat.",
+        2800
+      );
+    }
+    if (window.physics && typeof window.physics.updateCathedralGateCollider === "function") {
+      window.physics.updateCathedralGateCollider(this.isCathedralGateOpen);
+    }
+    return this.isCathedralGateOpen;
+  }
+  createCathedralRoyalGarage(parent) {
+    const garageGroup = new THREE.Group();
+    garageGroup.position.set(0, 0, 0);
+    const floorGeo = new THREE.BoxGeometry(34.0, 1.8, 80.0);
+    const floorMat = new THREE.MeshStandardMaterial({
+      color: 0x0c1017,
+      roughness: 0.22,
+      metalness: 0.75
+    });
+    const floor = new THREE.Mesh(floorGeo, floorMat);
+    floor.position.set(-38.0, 32.05 - 0.9, 1077.5);
+    floor.receiveShadow = true;
+    garageGroup.add(floor);
+    [-44.0, -32.0].forEach(gx => {
+      const stripGeo = new THREE.PlaneGeometry(0.35, 76.0);
+      const stripMat = new THREE.MeshBasicMaterial({ color: 0x00d4ff, transparent: true, opacity: 0.75 });
+      const strip = new THREE.Mesh(stripGeo, stripMat);
+      strip.rotation.x = -Math.PI / 2;
+      strip.position.set(gx, 32.06, 1077.5);
+      garageGroup.add(strip);
+    });
+    const wallMat = new THREE.MeshStandardMaterial({ color: 0x181f2c, roughness: 0.85, metalness: 0.15 });
+    const westWall = new THREE.Mesh(new THREE.BoxGeometry(2.0, 16.0, 80.0), wallMat);
+    westWall.position.set(-55.0, 32.05 + 8.0, 1077.5);
+    garageGroup.add(westWall);
+    const northWall = new THREE.Mesh(new THREE.BoxGeometry(36.0, 16.0, 2.0), wallMat);
+    northWall.position.set(-38.0, 32.05 + 8.0, 1118.0);
+    garageGroup.add(northWall);
+    for (let bz = 1045; bz <= 1115; bz += 15) {
+      const beamGeo = new THREE.BoxGeometry(34.0, 1.2, 1.4);
+      const beam = new THREE.Mesh(beamGeo, wallMat);
+      beam.position.set(-38.0, 32.05 + 15.0, bz);
+      garageGroup.add(beam);
+      const ledLight = new THREE.PointLight(0xe0f2fe, 1.8, 28);
+      ledLight.position.set(-38.0, 32.05 + 13.5, bz);
+      garageGroup.add(ledLight);
+    }
+    const naveArchMat = new THREE.MeshStandardMaterial({ color: 0xf5a623, metalness: 0.8, roughness: 0.2 });
+    const archSignGeo = new THREE.BoxGeometry(0.8, 1.6, 9.0);
+    const archSign = new THREE.Mesh(archSignGeo, naveArchMat);
+    archSign.position.set(-20.0, 32.05 + 9.5, 1070.0);
+    garageGroup.add(archSign);
+    const rampGeo = new THREE.PlaneGeometry(16.0, 20.0);
+    const rampMat = new THREE.MeshStandardMaterial({ color: 0x1a2233, roughness: 0.4, metalness: 0.5 });
+    const ramp = new THREE.Mesh(rampGeo, rampMat);
+    ramp.rotation.x = -Math.PI / 2;
+    ramp.position.set(-38.0, 32.06, 1030.0);
+    garageGroup.add(ramp);
+    this.garageCarBays = [
+      {
+        type: "BUGATTI",
+        name: "Bugatti Chiron",
+        hp: "1,500 HP",
+        topSpeed: "420 km/h",
+        colorHex: 0x00d4ff,
+        pos: new THREE.Vector3(-38.0, 32.05, 1055.0),
+        rotY: Math.PI / 2
+      },
+      {
+        type: "LAMBORGHINI",
+        name: "Lamborghini Centenario",
+        hp: "770 HP",
+        topSpeed: "350 km/h",
+        colorHex: 0x39ff14,
+        pos: new THREE.Vector3(-38.0, 32.05, 1070.0),
+        rotY: Math.PI / 2
+      },
+      {
+        type: "F1",
+        name: "McLaren MCL35M F1",
+        hp: "1,000+ HP",
+        topSpeed: "386 km/h",
+        colorHex: 0xff8700,
+        pos: new THREE.Vector3(-38.0, 32.05, 1085.0),
+        rotY: Math.PI / 2
+      },
+      {
+        type: "DODGE",
+        name: "Dodge Challenger Hellcat",
+        hp: "717 HP",
+        topSpeed: "327 km/h",
+        colorHex: 0xff2222,
+        pos: new THREE.Vector3(-38.0, 32.05, 1100.0),
+        rotY: Math.PI / 2
+      }
+    ];
+    this.garageCarBays.forEach((bay) => {
+      const pedGeo = new THREE.CylinderGeometry(3.6, 3.8, 0.22, 36);
+      const pedMat = new THREE.MeshStandardMaterial({
+        color: 0x151b26,
+        metalness: 0.8,
+        roughness: 0.25
+      });
+      const pedestal = new THREE.Mesh(pedGeo, pedMat);
+      pedestal.position.set(bay.pos.x, bay.pos.y + 0.11, bay.pos.z);
+      pedestal.receiveShadow = true;
+      garageGroup.add(pedestal);
+      const neonRingGeo = new THREE.RingGeometry(3.55, 3.75, 48);
+      const neonRingMat = new THREE.MeshBasicMaterial({
+        color: bay.colorHex,
+        side: THREE.DoubleSide
+      });
+      const neonRing = new THREE.Mesh(neonRingGeo, neonRingMat);
+      neonRing.rotation.x = -Math.PI / 2;
+      neonRing.position.set(bay.pos.x, bay.pos.y + 0.225, bay.pos.z);
+      garageGroup.add(neonRing);
+      const spot = new THREE.SpotLight(bay.colorHex, 3.2, 28, Math.PI / 4.5, 0.45, 1.2);
+      spot.position.set(bay.pos.x, bay.pos.y + 12.0, bay.pos.z);
+      spot.target = pedestal;
+      garageGroup.add(spot);
+      garageGroup.add(spot.target);
+      const carMesh = this.createShowroomCarMesh(bay.type, bay.colorHex);
+      carMesh.position.set(bay.pos.x, bay.pos.y + 0.22, bay.pos.z);
+      carMesh.rotation.y = bay.rotY;
+      garageGroup.add(carMesh);
+      bay.mesh = carMesh;
+      const badge = this.createFloatingGameBadge("!", bay.colorHex);
+      badge.position.set(bay.pos.x, bay.pos.y + 3.4, bay.pos.z);
+      garageGroup.add(badge);
+      bay.badge = badge;
+    });
+    parent.add(garageGroup);
+    this.cathedralGarageGroup = garageGroup;
+  }
+  createShowroomCarMesh(type, colorHex) {
+    const carRoot = new THREE.Group();
+    const bodyMat = new THREE.MeshPhysicalMaterial({
+      color: colorHex,
+      metalness: 0.85,
+      roughness: 0.2,
+      clearcoat: 1.0,
+      clearcoatRoughness: 0.05
+    });
+    const carbonMat = new THREE.MeshStandardMaterial({ color: 0x111317, metalness: 0.8, roughness: 0.3 });
+    const glassMat = new THREE.MeshPhysicalMaterial({ color: 0x050c18, transparent: true, opacity: 0.65, transmission: 0.6, roughness: 0.05 });
+    const wheelMat = new THREE.MeshStandardMaterial({ color: 0x1f242d, metalness: 0.9, roughness: 0.15 });
+    if (type === "F1") {
+      const chassis = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.4, 4.6), bodyMat);
+      chassis.position.y = 0.32;
+      carRoot.add(chassis);
+      const fWing = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.08, 0.8), carbonMat);
+      fWing.position.set(0, 0.16, 2.3);
+      carRoot.add(fWing);
+      const rWing = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.12, 0.6), carbonMat);
+      rWing.position.set(0, 0.92, -2.1);
+      carRoot.add(rWing);
+      const halo = new THREE.Mesh(new THREE.TorusGeometry(0.35, 0.06, 8, 16), carbonMat);
+      halo.rotation.x = Math.PI / 2;
+      halo.position.set(0, 0.68, 0.1);
+      carRoot.add(halo);
+      [[-0.95, 1.45], [0.95, 1.45], [-0.95, -1.45], [0.95, -1.45]].forEach(([wx, wz]) => {
+        const w = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.36, 0.45, 24), wheelMat);
+        w.rotation.z = Math.PI / 2;
+        w.position.set(wx, 0.36, wz);
+        carRoot.add(w);
+      });
+    } else {
+      const hullGeo = new THREE.BoxGeometry(2.1, 0.52, 4.5);
+      const hull = new THREE.Mesh(hullGeo, bodyMat);
+      hull.position.y = 0.42;
+      hull.castShadow = true;
+      carRoot.add(hull);
+      const cabinGeo = new THREE.BoxGeometry(1.58, 0.58, 2.2);
+      const cabin = new THREE.Mesh(cabinGeo, glassMat);
+      cabin.position.set(0, 0.86, -0.2);
+      carRoot.add(cabin);
+      const roofGeo = new THREE.BoxGeometry(1.4, 0.05, 1.5);
+      const roof = new THREE.Mesh(roofGeo, carbonMat);
+      roof.position.set(0, 1.16, -0.2);
+      carRoot.add(roof);
+      const hlMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+      [-0.75, 0.75].forEach(hx => {
+        const hl = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.1, 0.05), hlMat);
+        hl.position.set(hx, 0.45, 2.26);
+        carRoot.add(hl);
+      });
+      const tlMat = new THREE.MeshBasicMaterial({ color: 0xff0033 });
+      const tl = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.08, 0.05), tlMat);
+      tl.position.set(0, 0.52, -2.26);
+      carRoot.add(tl);
+      [[-1.02, 1.35], [1.02, 1.35], [-1.02, -1.35], [1.02, -1.35]].forEach(([wx, wz]) => {
+        const w = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.32, 24), wheelMat);
+        w.rotation.z = Math.PI / 2;
+        w.position.set(wx, 0.38, wz);
+        carRoot.add(w);
+      });
+    }
+    return carRoot;
+  }
+  createUpperCathedralSkyPalace(parent) {
+    const palaceGroup = new THREE.Group();
+    palaceGroup.position.set(0, 78.05, 0);
+    const floorGeo = new THREE.BoxGeometry(46.0, 1.6, 80.0);
+    const floorMat = new THREE.MeshStandardMaterial({
+      color: 0x1f2738,
+      roughness: 0.18,
+      metalness: 0.65
+    });
+    const floor = new THREE.Mesh(floorGeo, floorMat);
+    floor.position.set(0, -0.8, 1075.0);
+    floor.receiveShadow = true;
+    palaceGroup.add(floor);
+    [8.0, 14.0, 20.0].forEach((r, idx) => {
+      const ringGeo = new THREE.RingGeometry(r - 0.25, r + 0.25, 48);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: idx % 2 === 0 ? 0xf5a623 : 0x00f0ff,
+        side: THREE.DoubleSide
+      });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.set(0, 0.02, 1075.0);
+      palaceGroup.add(ring);
+    });
+    const pillarMat = new THREE.MeshStandardMaterial({ color: 0x2d3748, roughness: 0.8, metalness: 0.2 });
+    [-18.0, 18.0].forEach(px => {
+      for (let pz = 1045; pz <= 1110; pz += 16) {
+        const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.95, 22.0, 12), pillarMat);
+        pillar.position.set(px, 11.0, pz);
+        palaceGroup.add(pillar);
+        const archRib = new THREE.Mesh(new THREE.BoxGeometry(18.0, 0.6, 0.8), pillarMat);
+        archRib.position.set(px > 0 ? 9.0 : -9.0, 21.5, pz);
+        archRib.rotation.z = px > 0 ? -0.25 : 0.25;
+        palaceGroup.add(archRib);
+      }
+    });
+    const altarGroup = new THREE.Group();
+    altarGroup.position.set(0, 0, 1105.0);
+    [0.3, 0.6, 0.9].forEach((stepY, idx) => {
+      const step = new THREE.Mesh(new THREE.BoxGeometry(12.0 - idx * 2.5, 0.3, 8.0 - idx * 1.5), pillarMat);
+      step.position.y = stepY - 0.15;
+      altarGroup.add(step);
+    });
+    const goldMat = new THREE.MeshStandardMaterial({
+      color: 0xf5a623,
+      metalness: 0.9,
+      roughness: 0.2,
+      emissive: 0x553300,
+      emissiveIntensity: 0.4
+    });
+    const throneBack = new THREE.Mesh(new THREE.BoxGeometry(2.4, 4.2, 0.4), goldMat);
+    throneBack.position.set(0, 3.0, -1.5);
+    altarGroup.add(throneBack);
+    const skyCrystalGeo = new THREE.OctahedronGeometry(1.6);
+    const skyCrystalMat = new THREE.MeshStandardMaterial({
+      color: 0x00f0ff,
+      emissive: 0x00f0ff,
+      emissiveIntensity: 1.2
+    });
+    const skyCrystal = new THREE.Mesh(skyCrystalGeo, skyCrystalMat);
+    skyCrystal.position.set(0, 4.8, 0);
+    altarGroup.add(skyCrystal);
+    this.upperPalaceCrystal = skyCrystal;
+    const throneLight = new THREE.PointLight(0x00f0ff, 3.5, 30);
+    throneLight.position.set(0, 5.0, 0);
+    altarGroup.add(throneLight);
+    palaceGroup.add(altarGroup);
+    [1055, 1075, 1095].forEach(cz => {
+      const chGroup = new THREE.Group();
+      chGroup.position.set(0, 16.0, cz);
+      const chRing = new THREE.Mesh(new THREE.TorusGeometry(3.2, 0.18, 12, 32), goldMat);
+      chRing.rotation.x = Math.PI / 2;
+      chGroup.add(chRing);
+      const chLight = new THREE.PointLight(0xffdf99, 2.8, 45);
+      chGroup.add(chLight);
+      palaceGroup.add(chGroup);
+    });
+    const balGroup = new THREE.Group();
+    balGroup.position.set(0, 0, 1036.0);
+    const balGeo = new THREE.BoxGeometry(26.0, 1.35, 0.4);
+    const bal = new THREE.Mesh(balGeo, goldMat);
+    bal.position.set(0, 0.68, 0);
+    balGroup.add(bal);
+    for (let bx = -12.5; bx <= 12.5; bx += 1.2) {
+      const bCol = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 1.35, 8), goldMat);
+      bCol.position.set(bx, 0.68, 0);
+      balGroup.add(bCol);
+    }
+    [-13.0, 13.0].forEach(sx => {
+      const sBal = new THREE.Mesh(new THREE.BoxGeometry(0.4, 1.35, 8.0), goldMat);
+      sBal.position.set(sx, 0.68, 4.0);
+      balGroup.add(sBal);
+    });
+    palaceGroup.add(balGroup);
+    const returnPortal = new THREE.Group();
+    returnPortal.position.set(0, 0.05, 1055.0);
+    const retRing = new THREE.Mesh(new THREE.RingGeometry(2.4, 2.8, 36), new THREE.MeshBasicMaterial({
+      color: 0x00f0ff,
+      side: THREE.DoubleSide
+    }));
+    retRing.rotation.x = -Math.PI / 2;
+    returnPortal.add(retRing);
+    const retLight = new THREE.PointLight(0x00f0ff, 2.5, 20);
+    retLight.position.set(0, 1.8, 0);
+    returnPortal.add(retLight);
+    const returnBadge = this.createFloatingGameBadge("↓", 0x00f0ff);
+    returnBadge.position.set(0, 2.4, 0);
+    returnPortal.add(returnBadge);
+    palaceGroup.add(returnPortal);
+    this.upperReturnPortal = returnPortal;
+    parent.add(palaceGroup);
+    this.upperCathedralGroup = palaceGroup;
+  }
+  createUpperCathedralAscensionDoor(parent) {
+    const doorGroup = new THREE.Group();
+    doorGroup.position.set(0, 32.05, 1098.0);
+    const goldMat = new THREE.MeshStandardMaterial({ color: 0xf5a623, metalness: 0.9, roughness: 0.2 });
+    [-3.2, 3.2].forEach(px => {
+      const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.55, 8.5, 16), goldMat);
+      pillar.position.set(px, 4.25, 0);
+      doorGroup.add(pillar);
+    });
+    const archTop = new THREE.Mesh(new THREE.TorusGeometry(3.2, 0.4, 12, 24, Math.PI), goldMat);
+    archTop.position.set(0, 8.5, 0);
+    doorGroup.add(archTop);
+    const portalEnergyGeo = new THREE.PlaneGeometry(5.8, 8.2);
+    const portalEnergyMat = new THREE.MeshBasicMaterial({
+      color: 0x00f0ff,
+      transparent: true,
+      opacity: 0.45,
+      side: THREE.DoubleSide
+    });
+    const portalEnergy = new THREE.Mesh(portalEnergyGeo, portalEnergyMat);
+    portalEnergy.position.set(0, 4.2, 0);
+    doorGroup.add(portalEnergy);
+    this.upperDoorEnergy = portalEnergy;
+    const signCanvas = document.createElement("canvas");
+    signCanvas.width = 512;
+    signCanvas.height = 128;
+    const sctx = signCanvas.getContext("2d");
+    sctx.fillStyle = "rgba(12, 18, 32, 0.95)";
+    sctx.fillRect(0, 0, 512, 128);
+    sctx.strokeStyle = "#f5a623";
+    sctx.lineWidth = 6;
+    sctx.strokeRect(4, 4, 504, 120);
+    sctx.fillStyle = "#ffffff";
+    sctx.font = "bold 32px sans-serif";
+    sctx.textAlign = "center";
+    sctx.fillText("✦ PINTU ISTANA ATAS ✦", 256, 52);
+    sctx.fillStyle = "#f5a623";
+    sctx.font = "bold 26px monospace";
+    sctx.fillText("[ WHO ARE YOU? ]", 256, 95);
+    const signTex = new THREE.CanvasTexture(signCanvas);
+    const signMesh = new THREE.Mesh(new THREE.PlaneGeometry(4.8, 1.2), new THREE.MeshBasicMaterial({ map: signTex, side: THREE.DoubleSide }));
+    signMesh.position.set(0, 9.4, 0.1);
+    doorGroup.add(signMesh);
+    const badge = this.createFloatingGameBadge("?", 0xf5a623);
+    badge.position.set(0, 5.5, 0);
+    doorGroup.add(badge);
+    this.upperDoorBadge = badge;
+    const portalLight = new THREE.PointLight(0x00f0ff, 2.8, 25);
+    portalLight.position.set(0, 5.0, 1.5);
+    doorGroup.add(portalLight);
+    parent.add(doorGroup);
+    this.upperCathedralDoorGroup = doorGroup;
   }
   createGateOfLightPortal(parent) {
     const portalGroup = new THREE.Group();

@@ -43,7 +43,7 @@
   window.input = input;
   let isTrackingSkyAscension = false;
   let skyAscensionTimer = 0;
-  const CAMERA_MODES = ["CHASE", "HOOD", "TOPDOWN"];
+  const CAMERA_MODES = ["CHASE", "HOOD", "TOPDOWN", "SKY"];
   let currentCameraIndex = 0;
   window._currentCameraMode = CAMERA_MODES[0];
   let isCameraOrbiting = false;
@@ -1224,10 +1224,12 @@
       UI.charSkillBtn.style.display = isWalking ? "inline-flex" : "none";
     }
     if (UI.changeCarBtn) {
-      UI.changeCarBtn.style.display = "inline-flex";
+      UI.changeCarBtn.style.display = "none";
     }
   }
   window.updateWalkBtnUI = updateWalkBtnUI;
+  let activeInteraction = null;
+  let activeInspectedCarType = "BUGATTI";
   function checkSkywayAndGateProximity() {
     if (!physics) return;
     if (UI.walkPrompt) {
@@ -1235,7 +1237,7 @@
         const isNearSkywayEntrance = (physics.z >= 440 && physics.z <= 485 && Math.abs(physics.x) <= 16);
         const isLowSpeed = Math.abs(physics.speed) < 5.0;
         if (isNearSkywayEntrance) {
-          if (UI.walkPromptText) UI.walkPromptText.textContent = "JALAN MENUJU PINTU CAHAYA (Tekan F untuk Keluar)";
+          if (UI.walkPromptText) UI.walkPromptText.textContent = "JALAN MENUJU KATEDRAL (Tekan F untuk Keluar)";
           UI.walkPrompt.classList.add("show");
         } else if (isLowSpeed) {
           if (UI.walkPromptText) UI.walkPromptText.textContent = "KELUAR MOBIL & JALAN KAKI (Tekan F)";
@@ -1256,11 +1258,190 @@
         }
       }
     }
-    if (physics.mode === "WALKING") {
-      const distToGate = Math.hypot(physics.walkerX - 0, physics.walkerZ - 975);
-      if (distToGate <= 12.5 && !isGateModalOpen && currentQuizIndex < CELESTIAL_QUIZ.length) {
-        openCelestialGateModal();
+    const pX = (physics.mode === "WALKING") ? physics.walkerX : physics.x;
+    const pY = (physics.mode === "WALKING") ? physics.walkerY : physics.y;
+    const pZ = (physics.mode === "WALKING") ? physics.walkerZ : physics.z;
+    let target = null;
+    if (pZ >= 1024 && pZ <= 1036 && Math.abs(pX) <= 8.5 && pY < 50.0) {
+      const isOpen = Boolean(world && world.isCathedralGateOpen);
+      target = {
+        id: "CATHEDRAL_GATE",
+        label: `[E] / [KLIK]: ${isOpen ? "TUTUP GERBANG RAKSASA" : "BUKA GERBANG RAKSASA"} KATEDRAL`,
+        action: () => {
+          if (world && typeof world.toggleCathedralGates === "function") {
+            world.toggleCathedralGates();
+          }
+        }
+      };
+    }
+    else if (pZ >= 962 && pZ <= 988 && Math.abs(pX) <= 12.5 && pY < 50.0 && currentQuizIndex < CELESTIAL_QUIZ.length) {
+      const qTitle = currentQuizIndex === 1 ? "MEMBER SUKI" : (currentQuizIndex === 0 ? "ADMIN SUKI" : "ORANG NORMAL");
+      target = {
+        id: "CELESTIAL_GATE",
+        label: `[E] / [KLIK]: BUKA TEKA-TEKI GERBANG CAHAYA (${qTitle})`,
+        action: () => {
+          openCelestialGateModal();
+        }
+      };
+    }
+    else if (pZ >= 1091 && pZ <= 1105 && Math.abs(pX) <= 6.5 && pY < 50.0) {
+      target = {
+        id: "UPPER_DOOR",
+        label: "[E] / [KLIK]: PERIKSA PINTU ISTANA ATAS (WHO ARE YOU)",
+        action: () => {
+          handleUpperCathedralDoorInteraction();
+        }
+      };
+    }
+    else if (pY > 50.0 && pZ >= 1048 && pZ <= 1062 && Math.abs(pX) <= 5.5) {
+      target = {
+        id: "UPPER_RETURN",
+        label: "[E] / [KLIK]: TURUN KE LANTAI BAWAH KATEDRAL",
+        action: () => {
+          teleportToNaveFloor();
+        }
+      };
+    }
+    else if (world && world.garageCarBays && pY < 50.0) {
+      for (let i = 0; i < world.garageCarBays.length; i++) {
+        const bay = world.garageCarBays[i];
+        const dist = Math.hypot(pX - bay.pos.x, pZ - bay.pos.z);
+        if (dist <= 5.5) {
+          target = {
+            id: `GARAGE_${bay.type}`,
+            label: `[E] / [KLIK]: INSPEKSI & KENDARAI ${bay.name.toUpperCase()}`,
+            action: () => {
+              openGarageCarInspection(bay.type);
+            }
+          };
+          break;
+        }
       }
+    }
+    activeInteraction = target;
+    const promptEl = document.getElementById("game-interact-prompt");
+    const promptTextEl = document.getElementById("game-interact-text");
+    if (promptEl && promptTextEl) {
+      if (activeInteraction) {
+        promptTextEl.textContent = activeInteraction.label;
+        promptEl.classList.add("show");
+      } else {
+        promptEl.classList.remove("show");
+      }
+    }
+  }
+  function handleUpperCathedralDoorInteraction() {
+    if (currentQuizIndex < 2) {
+      if (window.showGameToast) {
+        window.showGameToast("🔒 Pintu Istana Atas Terkunci! Selesaikan teka-teki \"Member Suki\" di Gerbang Cahaya terlebih dahulu.", 4500);
+      }
+      return;
+    }
+    openUpperPalaceModal();
+  }
+  function openUpperPalaceModal() {
+    const modal = document.getElementById("upper-palace-modal");
+    if (!modal) return;
+    modal.classList.add("open");
+    const input = document.getElementById("upper-riddle-input");
+    if (input) {
+      input.value = "";
+      input.focus();
+    }
+    const fb = document.getElementById("upper-riddle-feedback");
+    if (fb) fb.textContent = "";
+  }
+  function closeUpperPalaceModal() {
+    const modal = document.getElementById("upper-palace-modal");
+    if (modal) modal.classList.remove("open");
+  }
+  function handleUpperRiddleSubmit() {
+    const input = document.getElementById("upper-riddle-input");
+    const fb = document.getElementById("upper-riddle-feedback");
+    if (!input) return;
+    const val = input.value.trim().toLowerCase();
+    if (val === "0" || val === "zero" || val === "nol") {
+      if (fb) {
+        fb.style.color = "#00f0ff";
+        fb.textContent = "✦ KUNCI DITERIMA! MENYAMBUT PENGUASA LANGIT... ✦";
+      }
+      if (audio && audio.playChime) audio.playChime();
+      setTimeout(() => {
+        closeUpperPalaceModal();
+        if (physics) {
+          physics.walkerX = 0;
+          physics.walkerY = 78.05;
+          physics.walkerZ = 1075;
+          physics.walkerRotation = 0;
+          physics.mode = "WALKING";
+        }
+        walkerCameraYaw = 0;
+        if (window.showGameToast) {
+          window.showGameToast("✨ Selamat Datang di Istana Atas Katedral!", 4000);
+        }
+      }, 700);
+    } else {
+      if (fb) {
+        fb.style.color = "#ff3366";
+        fb.textContent = "Jawaban belum tepat. Pikirkan hakikat kekosongan dan awal mula.";
+      }
+      if (audio && audio.playHorn) audio.playHorn();
+    }
+  }
+  function teleportToNaveFloor() {
+    if (physics) {
+      physics.walkerX = 0;
+      physics.walkerY = 32.05;
+      physics.walkerZ = 1070;
+      physics.walkerRotation = 0;
+    }
+    if (audio && audio.playChime) audio.playChime();
+    if (window.showGameToast) {
+      window.showGameToast("⬇️ Kembali ke Lantai Bawah Katedral", 2500);
+    }
+  }
+  function openGarageCarInspection(carType) {
+    if (!carModel || !carModel.CAR_METADATA) return;
+    const meta = carModel.CAR_METADATA[carType];
+    if (!meta) return;
+    activeInspectedCarType = carType;
+    const card = document.getElementById("garage-inspect-card");
+    if (!card) return;
+    const nameEl = document.getElementById("inspect-car-name");
+    const engineEl = document.getElementById("inspect-car-engine");
+    const speedEl = document.getElementById("inspect-car-speed");
+    const accelEl = document.getElementById("inspect-car-accel");
+    const driveBtn = document.getElementById("inspect-drive-btn");
+    if (nameEl) nameEl.textContent = meta.name;
+    if (engineEl) engineEl.textContent = meta.engine;
+    if (speedEl) speedEl.textContent = `${Math.round(meta.maxSpeed * 3.6 * 1.55)} km/h`;
+    const accelTime = meta.accel > 50 ? "2.4s" : (meta.accel > 45 ? "2.8s" : "3.4s");
+    if (accelEl) accelEl.textContent = accelTime;
+    if (driveBtn) driveBtn.textContent = `🏎️ KENDARAI ${meta.name.split(" ")[0].toUpperCase()}`;
+    card.classList.add("open");
+  }
+  function closeGarageInspectCard() {
+    const card = document.getElementById("garage-inspect-card");
+    if (card) card.classList.remove("open");
+  }
+  function selectAndDriveCar(carType) {
+    closeGarageInspectCard();
+    if (carModel && typeof carModel.switchCar === "function") {
+      carModel.switchCar(carType);
+    }
+    if (physics) {
+      physics.x = -38.0;
+      physics.y = 32.05;
+      physics.z = 1045.0;
+      physics.rotation = Math.PI;
+      physics.speed = 0;
+      physics.enterVehicle();
+    }
+    if (audio && audio.playChime) audio.playChime();
+    const meta = (carModel && carModel.CAR_METADATA[carType]) ? carModel.CAR_METADATA[carType] : null;
+    const carName = meta ? meta.name : "Hypercar";
+    if (window.showGameToast) {
+      window.showGameToast(`🏎️ ${carName} siap meluncur! Buka gerbang katedral untuk keluar ke jalan raya.`, 4000);
     }
   }
   function setupSidebarHub() {
@@ -1566,15 +1747,30 @@
     updateCameraModeButton();
     if (audio) audio.playChime();
   }
+  window.cycleCameraView = cycleCameraView;
+  window.setCameraMode = (m) => {
+    const idx = CAMERA_MODES.indexOf(m);
+    if (idx !== -1) {
+      currentCameraIndex = idx;
+      window._currentCameraMode = CAMERA_MODES[currentCameraIndex];
+      updateCameraModeButton();
+    }
+  };
   function updateCameraModeButton() {
     const mode = CAMERA_MODES[currentCameraIndex];
     const t = window.I18N ? window.I18N.translations[window.I18N.currentLang] : null;
+    let defaultText = `📷 ${mode}`;
+    if (mode === "SKY") defaultText = "🛸 SKY VIEW";
     if (UI.cameraBtn) {
-      const modeText = (t && t.hud && t.hud.cameraView && t.hud.cameraView[mode]) || `📷 ${mode}`;
+      const modeText = (t && t.hud && t.hud.cameraView && t.hud.cameraView[mode]) || defaultText;
       UI.cameraBtn.textContent = modeText;
     }
     if (UI.optCameraBtn) {
-      UI.optCameraBtn.textContent = mode;
+      UI.optCameraBtn.textContent = (mode === "SKY" ? "🛸 Sky View" : mode);
+    }
+    const skyBanner = document.getElementById("sky-view-banner");
+    if (skyBanner) {
+      skyBanner.style.display = (mode === "SKY") ? "flex" : "none";
     }
   }
   function setupEventHandlers() {
@@ -1582,6 +1778,7 @@
       if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) {
         if (e.code === "Escape") {
           closeCelestialGateModal();
+          closeUpperPalaceModal();
         }
         return;
       }
@@ -1618,7 +1815,11 @@
           toggleCharacterModal();
           break;
         case "KeyE":
-          triggerCharacterSkill();
+          if (activeInteraction && typeof activeInteraction.action === "function") {
+            activeInteraction.action();
+          } else {
+            triggerCharacterSkill();
+          }
           break;
         case "KeyQ":
           toggleSniperAim();
@@ -1666,6 +1867,10 @@
             closeGarageModal();
           } else if (isGateModalOpen) {
             closeCelestialGateModal();
+          } else if (document.getElementById("upper-palace-modal") && document.getElementById("upper-palace-modal").classList.contains("open")) {
+            closeUpperPalaceModal();
+          } else if (document.getElementById("garage-inspect-card") && document.getElementById("garage-inspect-card").classList.contains("open")) {
+            closeGarageInspectCard();
           } else if (UI.hubModal && UI.hubModal.classList.contains("open")) {
             closeSidebarHub();
           } else if (radar && radar.isMapModalOpen) {
@@ -1807,8 +2012,38 @@
         dismissCheckpointPill();
       });
     }
-    if (UI.drawerCloseBtn) {
-      UI.drawerCloseBtn.addEventListener("click", closeFullProjectDrawer);
+    const interactBtn = document.getElementById("game-interact-prompt");
+    if (interactBtn) {
+      interactBtn.addEventListener("click", () => {
+        if (activeInteraction && typeof activeInteraction.action === "function") {
+          activeInteraction.action();
+        }
+      });
+    }
+    const upperCloseBtn = document.getElementById("upper-close-btn");
+    if (upperCloseBtn) {
+      upperCloseBtn.addEventListener("click", closeUpperPalaceModal);
+    }
+    const upperForm = document.getElementById("upper-riddle-form");
+    if (upperForm) {
+      upperForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        handleUpperRiddleSubmit();
+      });
+    }
+    const upperSubmitBtn = document.getElementById("upper-submit-btn");
+    if (upperSubmitBtn) {
+      upperSubmitBtn.addEventListener("click", handleUpperRiddleSubmit);
+    }
+    const inspectCloseBtn = document.getElementById("inspect-close-btn");
+    if (inspectCloseBtn) {
+      inspectCloseBtn.addEventListener("click", closeGarageInspectCard);
+    }
+    const inspectDriveBtn = document.getElementById("inspect-drive-btn");
+    if (inspectDriveBtn) {
+      inspectDriveBtn.addEventListener("click", () => {
+        selectAndDriveCar(activeInspectedCarType);
+      });
     }
     window.addEventListener("blur", () => {
       input.forward = false;
@@ -2107,29 +2342,60 @@
           }
         }
       } else {
-        if (camera.fov !== 60.0) {
-          camera.fov = THREE.MathUtils.lerp(camera.fov, 60.0, Math.min(1.0, 14.0 * dt));
-          if (Math.abs(camera.fov - 60.0) < 0.2) camera.fov = 60.0;
-          camera.updateProjectionMatrix();
+        const mode = CAMERA_MODES[currentCameraIndex];
+        if (mode === "SKY") {
+          const focusX = physics.walkerX;
+          const focusY = physics.walkerY;
+          const focusZ = physics.walkerZ;
+          const clampedZoom = Math.max(0.15, Math.min(3.5, cameraZoomMultiplier));
+          const skyDist = 110.0 * clampedZoom;
+          const orbitAngle = walkerCameraYaw;
+          const pitchAngle = Math.max(-1.42, Math.min(-0.25, -0.85 + cameraPitchOffset * 1.4));
+          const desiredX = focusX - Math.sin(orbitAngle) * (skyDist * Math.cos(pitchAngle));
+          const desiredZ = focusZ - Math.cos(orbitAngle) * (skyDist * Math.cos(pitchAngle));
+          const desiredY = Math.max(focusY + 8.0, focusY - Math.sin(pitchAngle) * skyDist);
+          camera.position.lerp(new THREE.Vector3(desiredX, desiredY, desiredZ), Math.min(1.0, 7.5 * dt));
+          currentCamLook.lerp(new THREE.Vector3(focusX, focusY + 2.5, focusZ), Math.min(1.0, 8.5 * dt));
+          camera.lookAt(currentCamLook);
+        } else {
+          if (camera.fov !== 60.0) {
+            camera.fov = THREE.MathUtils.lerp(camera.fov, 60.0, Math.min(1.0, 14.0 * dt));
+            if (Math.abs(camera.fov - 60.0) < 0.2) camera.fov = 60.0;
+            camera.updateProjectionMatrix();
+          }
+          const baseDist = 5.8 * cameraZoomMultiplier;
+          const desiredX = physics.walkerX - Math.sin(walkerCameraYaw) * baseDist;
+          const desiredZ = physics.walkerZ - Math.cos(walkerCameraYaw) * baseDist;
+          const desiredY = Math.max(physics.walkerY + 0.9, physics.walkerY + 2.2 * cameraZoomMultiplier + cameraPitchOffset * 2.8);
+          const targetPos = new THREE.Vector3(desiredX, desiredY, desiredZ);
+          camera.position.lerp(targetPos, Math.min(1.0, 10.0 * dt));
+          const lookPitchY = -cameraPitchOffset * 16.0;
+          const lookTarget = new THREE.Vector3(
+            physics.walkerX,
+            physics.walkerY + 1.45 + lookPitchY,
+            physics.walkerZ
+          );
+          currentCamLook.lerp(lookTarget, Math.min(1.0, 14.0 * dt));
+          camera.lookAt(currentCamLook);
         }
-        const baseDist = 5.8 * cameraZoomMultiplier;
-        const desiredX = physics.walkerX - Math.sin(walkerCameraYaw) * baseDist;
-        const desiredZ = physics.walkerZ - Math.cos(walkerCameraYaw) * baseDist;
-        const desiredY = Math.max(physics.walkerY + 0.9, physics.walkerY + 2.2 * cameraZoomMultiplier + cameraPitchOffset * 2.8);
-        const targetPos = new THREE.Vector3(desiredX, desiredY, desiredZ);
-        camera.position.lerp(targetPos, Math.min(1.0, 10.0 * dt));
-        const lookPitchY = -cameraPitchOffset * 16.0;
-        const lookTarget = new THREE.Vector3(
-          physics.walkerX,
-          physics.walkerY + 1.45 + lookPitchY,
-          physics.walkerZ
-        );
-        currentCamLook.lerp(lookTarget, Math.min(1.0, 14.0 * dt));
-        camera.lookAt(currentCamLook);
       }
     } else {
       const mode = CAMERA_MODES[currentCameraIndex];
-      if (mode === "HOOD") {
+      if (mode === "SKY") {
+        const focusX = physics.x;
+        const focusY = physics.y;
+        const focusZ = physics.z;
+        const clampedZoom = Math.max(0.15, Math.min(3.5, cameraZoomMultiplier));
+        const skyDist = 110.0 * clampedZoom;
+        const orbitAngle = physics.rotation + cameraYawOffset;
+        const pitchAngle = Math.max(-1.42, Math.min(-0.25, -0.85 + cameraPitchOffset * 1.4));
+        const desiredX = focusX - Math.sin(orbitAngle) * (skyDist * Math.cos(pitchAngle));
+        const desiredZ = focusZ - Math.cos(orbitAngle) * (skyDist * Math.cos(pitchAngle));
+        const desiredY = Math.max(focusY + 8.0, focusY - Math.sin(pitchAngle) * skyDist);
+        camera.position.lerp(new THREE.Vector3(desiredX, desiredY, desiredZ), Math.min(1.0, 7.5 * dt));
+        currentCamLook.lerp(new THREE.Vector3(focusX, focusY + 2.5, focusZ), Math.min(1.0, 8.5 * dt));
+        camera.lookAt(currentCamLook);
+      } else if (mode === "HOOD") {
         const carYaw = physics.rotation;
         const hoodX = physics.x + Math.sin(carYaw) * 0.95;
         const hoodZ = physics.z + Math.cos(carYaw) * 0.95;

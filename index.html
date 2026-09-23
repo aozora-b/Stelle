@@ -133,7 +133,7 @@
       <button id="btn-toggle-walk" class="hud-btn hud-btn-icon" title="Keluar / Masuk Mobil (F)">🚶 TURUN</button>
       <button id="btn-switch-char" class="hud-btn hud-btn-icon" title="Ganti Karakter Minato / Miyu (X)">👤 MINATO</button>
       <button id="btn-char-skill" class="hud-btn hud-btn-icon" title="Skill Karakter (E / Klik Kanan/Kiri)">⚡ HIRAISHIN</button>
-      <button id="btn-change-car" class="hud-btn hud-btn-icon" title="Ganti Hypercar / Mobil (C)">🏎️ MOBIL</button>
+      <button id="btn-change-car" class="hud-btn hud-btn-icon" title="Ganti Hypercar / Mobil (C)" style="display: none !important;">🏎️ MOBIL</button>
       <button id="btn-inspect" class="hud-btn hud-btn-icon" title="Mode Inspeksi 3D RPG (I)">🔍 INSPEKSI</button>
       <button id="btn-lang" class="hud-btn hud-btn-icon" title="Ganti Bahasa (L)">🇮🇩 ID</button>
       <button id="btn-camera-view" class="hud-btn hud-btn-icon" title="Ganti Mode Kamera (V)">📷 CHASE</button>
@@ -480,6 +480,15 @@
     <button id="pill-open-btn" class="pill-open-btn">Buka Detail (ENTER) →</button>
     <button id="pill-close-btn" class="pill-close-btn" aria-label="Tutup Notifikasi">✕</button>
   </div>
+  <button id="game-interact-prompt" class="game-interact-prompt" aria-label="Aksi Interaksi Objek">
+    <span class="interact-key-badge">E</span>
+    <span id="game-interact-text">INTERAKSI</span>
+  </button>
+  <div id="sky-view-banner" class="sky-view-banner" style="display: none;">
+    <span class="sky-banner-icon">🛸</span>
+    <span class="sky-banner-text">MODE SKY VIEW &bull; Putar scroll mouse / gesture untuk zoom detail katedral hingga panorama seluruh kota &bull; Drag untuk orbit 360°</span>
+    <button id="sky-banner-close" class="sky-banner-close" title="Keluar Mode Sky">✕</button>
+  </div>
   <button id="walk-prompt" class="walk-prompt" aria-label="Aksi Pejalan Kaki">
     <span class="walk-prompt-icon">🚶</span>
     <span id="walk-prompt-text">KELUAR DARI MOBIL & JALAN KAKI (Tekan F)</span>
@@ -534,6 +543,52 @@
         </div>
       </div>
     </div>
+  </div>
+  <div id="upper-palace-modal" class="upper-palace-modal" role="dialog" aria-modal="true" aria-labelledby="upper-title">
+    <div class="upper-palace-card">
+      <button id="upper-close-btn" class="upper-close-btn" aria-label="Tutup Pintu Istana Atas">✕</button>
+      <div class="upper-header">
+        <span class="upper-badge">✦ PINTU ISTANA ATAS KATEDRAL // SKY PALACE ✦</span>
+        <h2 id="upper-title" class="upper-title">UJIAN PENJAGA TAKHTA LANGIT</h2>
+        <p class="upper-desc">Hanya entitas sejati yang memahami hakikat kekosongan dan awal mula segala sesuatu yang berhak menaiki Istana Atas Katedral.</p>
+      </div>
+      <div class="upper-riddle-box">
+        <div class="upper-question-tag">TEKA-TEKI KUNCI GERBANG ATAS</div>
+        <div class="upper-question-text">Who Are you</div>
+        <form id="upper-riddle-form" class="upper-riddle-form" onsubmit="return false;">
+          <div class="upper-input-wrap">
+            <input type="text" id="upper-riddle-input" class="upper-input" placeholder="Ketik jawaban di sini..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+            <button type="submit" id="upper-submit-btn" class="upper-submit-btn">BUKA GERBANG ATAS ✦</button>
+          </div>
+          <div id="upper-riddle-feedback" class="upper-feedback"></div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div id="garage-inspect-card" class="garage-inspect-card" role="dialog" aria-modal="true" aria-labelledby="inspect-car-name">
+    <button id="inspect-close-btn" class="inspect-close-btn" aria-label="Tutup Inspeksi">✕</button>
+    <div class="inspect-card-badge">✦ GARASI KATEDRAL // SHOWROOM PAJANGAN ✦</div>
+    <h3 id="inspect-car-name" class="inspect-car-name">Bugatti Chiron</h3>
+    <div id="inspect-car-engine" class="inspect-car-engine">8.0L Quad-Turbo W16 (1,500 HP)</div>
+    <div class="inspect-specs-grid">
+      <div class="inspect-spec-item">
+        <span class="spec-label">TOP SPEED</span>
+        <span id="inspect-car-speed" class="spec-val">420 km/h</span>
+      </div>
+      <div class="inspect-spec-item">
+        <span class="spec-label">0-100 KM/H</span>
+        <span id="inspect-car-accel" class="spec-val">2.4s</span>
+      </div>
+      <div class="inspect-spec-item">
+        <span class="spec-label">DRIVETRAIN</span>
+        <span class="spec-val">AWD Performance</span>
+      </div>
+      <div class="inspect-spec-item">
+        <span class="spec-label">STATUS</span>
+        <span class="spec-val" style="color: #39ff14;">Siap Dikendarai</span>
+      </div>
+    </div>
+    <button id="inspect-drive-btn" class="inspect-drive-btn">🏎️ PILIH & KENDARAI MOBIL INI</button>
   </div>
   <div id="respawn-toast" class="respawn-toast" role="status">↺ JATUH KE AIR! KEMBALI KE TITIK AWAL</div>
   <div id="tactical-map-modal" class="tactical-map-modal" role="dialog" aria-modal="true" aria-label="Tactical Tokyo Map">
