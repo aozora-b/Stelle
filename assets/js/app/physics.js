@@ -11,7 +11,7 @@ class VehiclePhysicsEngine {
     this.verticalVelocity = 0;
     this.angularVelocity = 0;
     this.steeringAngle = 0;
-    this.maxSteerAngle = 0.52;
+    this.maxSteerAngle = 0.65;
     this.pitch = 0;
     this.roll = 0;
     this.isAirborne = false;
@@ -333,12 +333,12 @@ class VehiclePhysicsEngine {
   }
   updateSteering(dt, input) {
     const speedRatio = Math.abs(this.speed) / this.config.MAX_SPEED;
-    const speedDamping = 1.0 / (1.0 + speedRatio * 1.15);
+    const speedDamping = 1.0 / (1.0 + speedRatio * 0.50);
     const targetLock = this.maxSteerAngle * speedDamping;
     let targetAngle = 0;
     if (input.left) targetAngle = targetLock;
     else if (input.right) targetAngle = -targetLock;
-    const steerRate = (targetAngle === 0) ? 14.0 : 10.5;
+    const steerRate = (targetAngle === 0) ? 24.0 : 18.0;
     this.steeringAngle += (targetAngle - this.steeringAngle) * Math.min(1.0, steerRate * dt);
   }
   updateLongitudinalDrive(dt, input) {
@@ -448,24 +448,26 @@ class VehiclePhysicsEngine {
   updateCorneringAndDrift(dt, input) {
     const handbrake = input.space;
     const wheelBase = this.config.WHEEL_BASE;
-    let targetAngularVelocity = (this.speed / wheelBase) * Math.sin(this.steeringAngle);
+    const effectiveTurnSpeed = Math.max(Math.abs(this.speed), 8.5);
+    const turnDirection = (this.speed >= -0.3) ? 1.0 : -1.0;
+    let targetAngularVelocity = (effectiveTurnSpeed / wheelBase) * Math.sin(this.steeringAngle) * turnDirection;
     const downforceRatio = Math.pow(Math.abs(this.speed) / this.config.MAX_SPEED, 2.0);
-    const aeroGripBonus = 1.0 + downforceRatio * 1.5;
-    const gripCoeff = handbrake ? 0.62 : 1.45;
+    const aeroGripBonus = 1.0 + downforceRatio * 1.6;
+    const gripCoeff = handbrake ? 0.75 : 1.75;
     const maxLatAcc = gripCoeff * 9.81 * aeroGripBonus;
-    const maxSafeYawRate = maxLatAcc / Math.max(Math.abs(this.speed), 3.5);
+    const maxSafeYawRate = Math.max(2.6, maxLatAcc / Math.max(Math.abs(this.speed), 3.5));
     targetAngularVelocity = Math.max(-maxSafeYawRate, Math.min(maxSafeYawRate, targetAngularVelocity));
-    const yawResponsiveness = 10.5;
-    this.angularVelocity += (targetAngularVelocity - this.angularVelocity) * yawResponsiveness * dt;
+    const yawResponsiveness = 18.0;
+    this.angularVelocity += (targetAngularVelocity - this.angularVelocity) * Math.min(1.0, yawResponsiveness * dt);
     this.rotation += this.angularVelocity * dt;
     const lateralSpeed = Math.abs(this.angularVelocity * this.speed);
-    const isSharpTurn = lateralSpeed > (9.5 * aeroGripBonus);
-    this.isDrifting = (handbrake && Math.abs(this.speed) > 5.5) || (isSharpTurn && !handbrake);
+    const isSharpTurn = lateralSpeed > (8.5 * aeroGripBonus);
+    this.isDrifting = (handbrake && Math.abs(this.speed) > 4.5) || (isSharpTurn && !handbrake);
     if (this.isDrifting) {
-      this.lateralVelocity += Math.sin(this.steeringAngle) * this.speed * 0.35 * dt;
+      this.lateralVelocity += Math.sin(this.steeringAngle) * this.speed * 0.40 * dt;
       this.lateralVelocity *= Math.pow(0.96, dt * 60);
     } else {
-      this.lateralVelocity *= Math.pow(0.78 / aeroGripBonus, dt * 60);
+      this.lateralVelocity *= Math.pow(0.72 / aeroGripBonus, dt * 60);
     }
   }
   integratePosition(dt) {

@@ -51,6 +51,7 @@
   let orbitStartY = 0;
   let cameraYawOffset = 0;
   let cameraPitchOffset = 0;
+  let walkerCameraYaw = 0;
   window.setCameraYawOffset = (val) => { cameraYawOffset = val; };
   window.setCameraPitchOffset = (val) => { cameraPitchOffset = val; };
   let isCinematic = false;
@@ -321,7 +322,7 @@
     window.QUALITY_MODES = QUALITY_MODES;
     window.applyQualityTier = applyQualityTier;
     window.getFPS = () => currentFps;
-    window.getWalkerCameraHeading = () => ((physics ? physics.walkerRotation : 0) + cameraYawOffset);
+    window.getWalkerCameraHeading = () => walkerCameraYaw;
     window.saveCheckpointState = saveCheckpointState;
     window.loadCheckpointState = loadCheckpointState;
     window.toggleCharacterModal = toggleCharacterModal;
@@ -1147,8 +1148,11 @@
       }, 400);
       setTimeout(() => {
         isCarTransitioning = false;
+        walkerCameraYaw = physics.rotation;
+        cameraPitchOffset = 0;
         checkSkywayAndGateProximity();
         updateWalkBtnUI();
+        saveCheckpointState();
       }, 1300);
     } else {
       const distToCar = Math.hypot(physics.walkerX - physics.x, physics.walkerZ - physics.z);
@@ -1799,8 +1803,13 @@
       orbitStartX = e.clientX;
       orbitStartY = e.clientY;
       const sens = (world && world.isAiming) ? Math.min(1.0, camera.fov / 60.0) : 1.0;
-      cameraYawOffset -= dx * 0.006 * sens;
-      cameraPitchOffset = Math.max(-1.35, Math.min(0.65, cameraPitchOffset + dy * 0.0045 * sens));
+      if (physics && physics.mode === "WALKING") {
+        walkerCameraYaw -= dx * 0.0055 * sens;
+        cameraPitchOffset = Math.max(-0.45, Math.min(0.55, cameraPitchOffset + dy * 0.004 * sens));
+      } else {
+        cameraYawOffset -= dx * 0.006 * sens;
+        cameraPitchOffset = Math.max(-1.35, Math.min(0.65, cameraPitchOffset + dy * 0.0045 * sens));
+      }
     });
     window.addEventListener("mouseup", () => {
       isCameraOrbiting = false;
@@ -1819,8 +1828,13 @@
       orbitStartX = e.touches[0].clientX;
       orbitStartY = e.touches[0].clientY;
       const sens = (world && world.isAiming) ? Math.min(1.0, camera.fov / 60.0) : 1.0;
-      cameraYawOffset -= dx * 0.007 * sens;
-      cameraPitchOffset = Math.max(-1.35, Math.min(0.65, cameraPitchOffset + dy * 0.0055 * sens));
+      if (physics && physics.mode === "WALKING") {
+        walkerCameraYaw -= dx * 0.0065 * sens;
+        cameraPitchOffset = Math.max(-0.45, Math.min(0.55, cameraPitchOffset + dy * 0.0045 * sens));
+      } else {
+        cameraYawOffset -= dx * 0.007 * sens;
+        cameraPitchOffset = Math.max(-1.35, Math.min(0.65, cameraPitchOffset + dy * 0.0055 * sens));
+      }
     }, { passive: true });
     canvas.addEventListener("touchend", () => {
       isCameraOrbiting = false;
@@ -2000,22 +2014,21 @@
       currentCamLook.lerp(lookPos, 4.0 * dt);
       camera.lookAt(currentCamLook);
     } else if (physics && physics.mode === "WALKING") {
-      const walkerYaw = physics.walkerRotation + cameraYawOffset;
       const isAiming = Boolean(world && world.isAiming && world.activeCharacter === "MIYU");
       if (isAiming) {
         const targetFOV = (sniperZoomIndex === 0) ? 22.0 : ((sniperZoomIndex === 1) ? 12.0 : 7.5);
         camera.fov = THREE.MathUtils.lerp(camera.fov, targetFOV, Math.min(1.0, 16.0 * dt));
         camera.updateProjectionMatrix();
         const eyeHeight = 1.38;
-        const desiredX = physics.walkerX + Math.sin(walkerYaw) * 0.12;
-        const desiredZ = physics.walkerZ + Math.cos(walkerYaw) * 0.12;
+        const desiredX = physics.walkerX + Math.sin(walkerCameraYaw) * 0.12;
+        const desiredZ = physics.walkerZ + Math.cos(walkerCameraYaw) * 0.12;
         const desiredY = physics.walkerY + eyeHeight;
         camera.position.lerp(new THREE.Vector3(desiredX, desiredY, desiredZ), Math.min(1.0, 18.0 * dt));
         const lookPitchY = -cameraPitchOffset * 85.0;
         const lookTarget = new THREE.Vector3(
-          physics.walkerX + Math.sin(walkerYaw) * 250.0,
+          physics.walkerX + Math.sin(walkerCameraYaw) * 250.0,
           physics.walkerY + eyeHeight + lookPitchY,
-          physics.walkerZ + Math.cos(walkerYaw) * 250.0
+          physics.walkerZ + Math.cos(walkerCameraYaw) * 250.0
         );
         currentCamLook.lerp(lookTarget, Math.min(1.0, 22.0 * dt));
         camera.lookAt(currentCamLook);
@@ -2041,19 +2054,19 @@
           if (Math.abs(camera.fov - 60.0) < 0.2) camera.fov = 60.0;
           camera.updateProjectionMatrix();
         }
-        const baseDist = 6.5 * cameraZoomMultiplier;
-        const desiredX = physics.walkerX - Math.sin(walkerYaw) * baseDist;
-        const desiredZ = physics.walkerZ - Math.cos(walkerYaw) * baseDist;
-        const desiredY = Math.max(physics.walkerY + 0.9, physics.walkerY + 2.8 * cameraZoomMultiplier + cameraPitchOffset * 2.8);
+        const baseDist = 5.8 * cameraZoomMultiplier;
+        const desiredX = physics.walkerX - Math.sin(walkerCameraYaw) * baseDist;
+        const desiredZ = physics.walkerZ - Math.cos(walkerCameraYaw) * baseDist;
+        const desiredY = Math.max(physics.walkerY + 0.9, physics.walkerY + 2.2 * cameraZoomMultiplier + cameraPitchOffset * 2.8);
         const targetPos = new THREE.Vector3(desiredX, desiredY, desiredZ);
-        camera.position.lerp(targetPos, 8.0 * dt);
-        const lookPitchY = -cameraPitchOffset * 22.0;
+        camera.position.lerp(targetPos, Math.min(1.0, 10.0 * dt));
+        const lookPitchY = -cameraPitchOffset * 16.0;
         const lookTarget = new THREE.Vector3(
-          physics.walkerX + Math.sin(walkerYaw) * 1.5,
-          physics.walkerY + 1.6 + lookPitchY,
-          physics.walkerZ + Math.cos(walkerYaw) * 1.5
+          physics.walkerX,
+          physics.walkerY + 1.45 + lookPitchY,
+          physics.walkerZ
         );
-        currentCamLook.lerp(lookTarget, 9.0 * dt);
+        currentCamLook.lerp(lookTarget, Math.min(1.0, 14.0 * dt));
         camera.lookAt(currentCamLook);
       }
     } else {
@@ -2354,6 +2367,8 @@
           physics.walkerY = data.y;
           physics.walkerZ = data.z;
           physics.walkerRotation = data.rot || 0;
+          walkerCameraYaw = data.rot || 0;
+          cameraPitchOffset = 0;
           physics.mode = "WALKING";
           physics.speed = 0;
           physics.walkerSpeed = 0;

@@ -45,7 +45,7 @@ class SportsCarModel {
         driverScale: 0.42
       }
     };
-    this.currentCarType = this.CAR_TYPES.LAMBORGHINI;
+    this.currentCarType = this.CAR_TYPES.BUGATTI;
     this.carCache = {};
     this.activeModel = null;
     this.wheels = [];
@@ -83,6 +83,7 @@ class SportsCarModel {
       return;
     }
     const carFiles = {
+      LAMBORGHINI: "assets/js/data/vehicles/lamborghini_model_data.js",
       BUGATTI: "assets/js/data/vehicles/bugatti_model_data.js",
       F1: "assets/js/data/vehicles/mclaren_f1_data.js",
       DODGE: "assets/js/data/vehicles/dodge_model_data.js"
