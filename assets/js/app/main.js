@@ -1,5 +1,29 @@
 (function () {
   "use strict";
+  function loadScriptAsync(src) {
+    return new Promise((resolve, reject) => {
+      const existing = document.querySelector(`script[src="${src}"]`);
+      if (existing) {
+        if (existing.dataset.loaded === "true") return resolve();
+        existing.addEventListener("load", () => resolve());
+        existing.addEventListener("error", (e) => reject(e));
+        return;
+      }
+      const s = document.createElement("script");
+      s.src = src;
+      s.async = true;
+      s.onload = () => {
+        s.dataset.loaded = "true";
+        resolve();
+      };
+      s.onerror = (err) => {
+        console.error(`Gagal memuat modul script: ${src}`, err);
+        reject(err);
+      };
+      document.body.appendChild(s);
+    });
+  }
+  window.loadScriptAsync = loadScriptAsync;
   let physics = null;
   let carModel = null;
   let world = null;
@@ -163,8 +187,10 @@
   let isGateModalOpen = false;
   window.addEventListener("DOMContentLoaded", initializeApplication);
   function initializeApplication() {
+    if (window._updatePreloader) window._updatePreloader(45, "MENYIAPKAN RENDERER & SHADER...");
     cacheDOMElements();
     setupThreeScene();
+    if (window._updatePreloader) window._updatePreloader(75, "MEMBANGUN INFRASTRUKTUR SHUTO...");
     setupCoreSystems();
     setupSidebarHub();
     setupCelestialGate();
@@ -172,6 +198,16 @@
     setupCameraOrbitControls();
     setupTouchControls();
     applyQualityTier(QUALITY_MODES.AUTO, false);
+    if (window._updatePreloader) window._updatePreloader(100, "SISTEM SIAP! MASUK JALUR TOL...");
+    const preloader = document.getElementById("app-preloader");
+    if (preloader) {
+      setTimeout(() => {
+        preloader.classList.add("fade-out");
+        setTimeout(() => {
+          if (preloader.parentNode) preloader.parentNode.removeChild(preloader);
+        }, 850);
+      }, 350);
+    }
     requestAnimationFrame(renderLoop);
   }
   function cacheDOMElements() {
@@ -751,6 +787,12 @@
       inspectorTarget.set(0, 0.9, 0);
       inspectorCamDist = 2.8;
       if (world && world.activeCharacter === "MIYU") {
+        if (!world.miyuLoaded && typeof world.loadMiyuModelAsync === "function") {
+          world.loadMiyuModelAsync(() => {
+            loadInspectorModel();
+          });
+          return;
+        }
         if (world.miyuAvatarGroup) {
           const clone = cloneSkinnedHierarchy(world.miyuAvatarGroup);
           clone.visible = true;

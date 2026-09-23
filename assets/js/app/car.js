@@ -76,21 +76,51 @@ class SportsCarModel {
   buildCar() {
     this.loadCarModel(this.currentCarType);
   }
-  loadCarModel(type) {
+  loadCarModel(type, onComplete) {
     if (this.carCache[type]) {
       this.activateCarModel(type, this.carCache[type]);
+      if (onComplete) onComplete(this.carCache[type]);
       return;
     }
-    let b64 = null;
-    if (type === this.CAR_TYPES.LAMBORGHINI) b64 = window.LAMBORGHINI_GLB;
-    else if (type === this.CAR_TYPES.BUGATTI) b64 = window.BUGATTI_CHIRON_GLB;
-    else if (type === this.CAR_TYPES.F1) b64 = window.MCLAREN_F1_GLB;
-    else if (type === this.CAR_TYPES.DODGE) b64 = window.DODGE_CHALLENGER_GLB;
+    const carFiles = {
+      BUGATTI: "assets/js/data/vehicles/bugatti_model_data.js",
+      F1: "assets/js/data/vehicles/mclaren_f1_data.js",
+      DODGE: "assets/js/data/vehicles/dodge_model_data.js"
+    };
+    const getCarB64 = (t) => {
+      if (t === this.CAR_TYPES.LAMBORGHINI) return window.LAMBORGHINI_GLB;
+      if (t === this.CAR_TYPES.BUGATTI) return window.BUGATTI_CHIRON_GLB;
+      if (t === this.CAR_TYPES.F1) return window.MCLAREN_F1_GLB;
+      if (t === this.CAR_TYPES.DODGE) return window.DODGE_CHALLENGER_GLB;
+      return null;
+    };
+    let b64 = getCarB64(type);
+    if (!b64 && carFiles[type] && typeof window.loadScriptAsync === "function") {
+      if (window.showGameToast && this.CAR_METADATA[type]) {
+        window.showGameToast(`⏳ Memuat model 3D ${this.CAR_METADATA[type].name}...`, 3200);
+      }
+      window.loadScriptAsync(carFiles[type]).then(() => {
+        b64 = getCarB64(type);
+        if (b64) {
+          this._parseAndActivateCar(type, b64, onComplete);
+        } else {
+          console.warn("Base64 still missing after script load for " + type);
+          this.buildProceduralFallback();
+        }
+      }).catch((err) => {
+        console.error("Failed to load car script for " + type, err);
+        this.buildProceduralFallback();
+      });
+      return;
+    }
     if (!b64 || typeof THREE.GLTFLoader !== "function") {
       console.warn("Model data not available for " + type + ", building procedural hypercar fallback.");
       this.buildProceduralFallback();
       return;
     }
+    this._parseAndActivateCar(type, b64, onComplete);
+  }
+  _parseAndActivateCar(type, b64, onComplete) {
     try {
       const bin = atob(b64);
       const len = bin.length;
@@ -103,6 +133,7 @@ class SportsCarModel {
         const model = gltf.scene;
         this.carCache[type] = model;
         this.activateCarModel(type, model);
+        if (onComplete) onComplete(model);
       }, (err) => {
         console.error("Failed to parse " + type + " GLB:", err);
         this.buildProceduralFallback();

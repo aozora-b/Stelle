@@ -14,6 +14,115 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
 <body>
+  <style id="preloader-critical-css">
+    .app-preloader {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: #080b12;
+      z-index: 999999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace, sans-serif;
+      color: #e2e8f0;
+      transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.8s;
+    }
+    .app-preloader.fade-out {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+    .preloader-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      max-width: 480px;
+      width: 90%;
+      gap: 1.2rem;
+    }
+    .preloader-glitch {
+      font-size: 2.2rem;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      color: #f8fafc;
+      text-shadow: 0 0 25px rgba(245, 166, 35, 0.6);
+    }
+    .preloader-glitch span {
+      color: #f5a623;
+    }
+    .preloader-sub {
+      font-size: 0.68rem;
+      letter-spacing: 0.22em;
+      color: #94a3b8;
+      margin-top: 0.3rem;
+    }
+    .preloader-bar-wrap {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+      overflow: hidden;
+      position: relative;
+      border: 1px solid rgba(245, 166, 35, 0.25);
+      box-shadow: 0 0 15px rgba(245, 166, 35, 0.15);
+    }
+    .preloader-bar-fill {
+      width: 15%;
+      height: 100%;
+      background: linear-gradient(90deg, #f5a623, #00f0ff);
+      box-shadow: 0 0 16px #00f0ff;
+      transition: width 0.35s ease-out;
+    }
+    .preloader-percent {
+      font-family: monospace;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #00f0ff;
+      text-shadow: 0 0 12px rgba(0, 240, 255, 0.6);
+    }
+    .preloader-status {
+      font-family: monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      color: #cbd5e1;
+      min-height: 1.2rem;
+    }
+    .preloader-meta {
+      font-size: 0.62rem;
+      color: #64748b;
+      letter-spacing: 0.14em;
+    }
+  </style>
+  <div id="app-preloader" class="app-preloader">
+    <div class="preloader-content">
+      <div class="preloader-brand">
+        <div class="preloader-glitch">STELLE<span>.3D</span></div>
+        <div class="preloader-sub">TOKYO SHUTO EXPRESSWAY // ARCHITECTURE PORTFOLIO</div>
+      </div>
+      <div class="preloader-percent" id="preloader-percent">15%</div>
+      <div class="preloader-bar-wrap">
+        <div class="preloader-bar-fill" id="preloader-bar"></div>
+      </div>
+      <div class="preloader-status" id="preloader-status">MENGHUBUNGKAN KE JALUR TOL TOKYO...</div>
+      <div class="preloader-meta">
+        <span>CLEAN ARCHITECTURE</span> &bull; <span>60 FPS ENGINE</span> &bull; <span>ADAPTIVE DYNAMICS</span>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function() {
+      window._updatePreloader = function(pct, text) {
+        var bar = document.getElementById("preloader-bar");
+        var p = document.getElementById("preloader-percent");
+        var s = document.getElementById("preloader-status");
+        if (bar) bar.style.width = pct + "%";
+        if (p) p.textContent = Math.round(pct) + "%";
+        if (s && text) s.textContent = text;
+      };
+      window._updatePreloader(20, "MEMUAT DATA KOTA & JALUR TOL TOKYO...");
+    })();
+  </script>
   <main id="webgl-container" role="main" title="Klik & Geser mouse untuk memutar kamera 3D"></main>
   <header class="top-hud">
     <div class="brand-badge">
@@ -700,12 +809,8 @@
   </nav>
   <script src="assets/js/core/three.min.js"></script>
   <script src="assets/js/core/GLTFLoader.js"></script>
-  <script src="assets/js/data/vehicles/bugatti_model_data.js"></script>
   <script src="assets/js/data/vehicles/lamborghini_model_data.js"></script>
-  <script src="assets/js/data/vehicles/dodge_model_data.js"></script>
-  <script src="assets/js/data/vehicles/mclaren_f1_data.js"></script>
   <script src="assets/js/data/characters/hero_model_data.js"></script>
-  <script src="assets/js/data/characters/miyu_model_data.js"></script>
   <script src="assets/js/data/environment/sky_textures.js"></script>
   <script src="assets/js/data/environment/tokyo_city_model_data.js"></script>
   <script src="assets/js/data/environment/ccity_building_data.js"></script>

@@ -2235,66 +2235,8 @@ class TokyoCityWorld {
       this.minatoAvatarGroup.add(this.heroChakraRing);
       this.isUsingGusionModel = true;
     }
-    if (typeof THREE.GLTFLoader === "function") {
-      const loader = new THREE.GLTFLoader();
-      const parseMiyuGLTF = (buffer) => {
-        try {
-          loader.parse(buffer, "", (gltf) => {
-            const miyuRoot = gltf.scene;
-            miyuRoot.scale.set(1.0, 1.0, 1.0);
-            miyuRoot.rotation.y = Math.PI;
-            miyuRoot.traverse((child) => {
-              if (child.isMesh || child.isSkinnedMesh) {
-                child.castShadow = true;
-                child.receiveShadow = true;
-                if (child.name === "Object_232" || child.name === "Ground_195") {
-                  child.visible = false;
-                }
-              }
-              if (child.isBone || (child.type && child.type.includes("Bone")) || child.name.includes("Leg") || child.name.includes("Arm") || child.name.includes("Spine") || child.name.includes("Hips") || child.name.includes("Weapon")) {
-                this.miyuBones[child.name] = child;
-                child.userData.restQuat = child.quaternion.clone();
-                child.userData.restPos = child.position.clone();
-              }
-            });
-            miyuRoot.traverse((child) => {
-              if (child.name === "Weapon_Root_12" || child.name === "Garbage_Root_201") {
-                this.miyuBones[child.name] = child;
-                child.userData.restQuat = child.quaternion.clone();
-              }
-            });
-            this.miyuAvatarGroup.add(miyuRoot);
-            this.miyuLoaded = true;
-            console.log("Kasumizawa Miyu 3D Model Loaded & Rigged successfully! Bones found:", Object.keys(this.miyuBones).length);
-          }, (err) => console.warn("Miyu GLTF parse error:", err));
-        } catch (e) {
-          console.warn("Failed to parse Miyu model:", e);
-        }
-      };
-      if (window.MIYU_MODEL_GLB) {
-        try {
-          const bin = atob(window.MIYU_MODEL_GLB);
-          const bytes = new Uint8Array(bin.length);
-          for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-          parseMiyuGLTF(bytes.buffer);
-        } catch (b64Err) {
-          console.warn("Base64 decode MIYU failed:", b64Err);
-        }
-      } else {
-        loader.load("assets/blue_archivekasumizawa_miyu.glb", (gltf) => {
-          const miyuRoot = gltf.scene;
-          miyuRoot.rotation.y = Math.PI;
-          miyuRoot.traverse(child => {
-            if (child.name === "Object_232" || child.name === "Ground_195") child.visible = false;
-            if (child.isBone || child.name.includes("Leg") || child.name.includes("Arm") || child.name.includes("Spine") || child.name.includes("Hips") || child.name.includes("Weapon")) {
-              this.miyuBones[child.name] = child;
-              child.userData.restQuat = child.quaternion.clone();
-            }
-          });
-          this.miyuAvatarGroup.add(miyuRoot);
-          this.miyuLoaded = true;
-        }, undefined, (e) => console.warn("Miyu GLB load fallback error:", e));
-      }
+    if (window.MIYU_MODEL_GLB) {
+      this.loadMiyuModelAsync();
     }
     this.createCharacterNameplate();
     const walkerCanvas = document.createElement("canvas");
@@ -2364,14 +2306,118 @@ class TokyoCityWorld {
       this.heroNameplate.material.map.needsUpdate = true;
     }
   }
+  loadMiyuModelAsync(onComplete) {
+    if (this.miyuLoaded) {
+      if (onComplete) onComplete();
+      return Promise.resolve();
+    }
+    if (this._miyuLoadingPromise) {
+      if (onComplete) this._miyuLoadingPromise.then(onComplete);
+      return this._miyuLoadingPromise;
+    }
+    this._miyuLoadingPromise = new Promise((resolve) => {
+      const parseMiyuGLTF = (buffer) => {
+        try {
+          if (typeof THREE.GLTFLoader !== "function") {
+            resolve();
+            return;
+          }
+          const loader = new THREE.GLTFLoader();
+          loader.parse(buffer, "", (gltf) => {
+            const miyuRoot = gltf.scene;
+            miyuRoot.scale.set(1.0, 1.0, 1.0);
+            miyuRoot.rotation.y = Math.PI;
+            miyuRoot.traverse((child) => {
+              if (child.isMesh || child.isSkinnedMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+                if (child.name === "Object_232" || child.name === "Ground_195") {
+                  child.visible = false;
+                }
+              }
+              if (child.isBone || (child.type && child.type.includes("Bone")) || child.name.includes("Leg") || child.name.includes("Arm") || child.name.includes("Spine") || child.name.includes("Hips") || child.name.includes("Weapon")) {
+                this.miyuBones[child.name] = child;
+                child.userData.restQuat = child.quaternion.clone();
+                child.userData.restPos = child.position.clone();
+              }
+            });
+            miyuRoot.traverse((child) => {
+              if (child.name === "Weapon_Root_12" || child.name === "Garbage_Root_201") {
+                this.miyuBones[child.name] = child;
+                child.userData.restQuat = child.quaternion.clone();
+              }
+            });
+            this.miyuAvatarGroup.add(miyuRoot);
+            this.miyuLoaded = true;
+            console.log("Kasumizawa Miyu 3D Model Loaded & Rigged successfully! Bones found:", Object.keys(this.miyuBones).length);
+            if (this.activeCharacter === "MIYU" && this.miyuAvatarGroup) {
+              this.miyuAvatarGroup.visible = true;
+            }
+            if (onComplete) onComplete();
+            resolve();
+          }, (err) => {
+            console.warn("Miyu GLTF parse error:", err);
+            resolve();
+          });
+        } catch (e) {
+          console.warn("Failed to parse Miyu model:", e);
+          resolve();
+        }
+      };
+      if (window.MIYU_MODEL_GLB) {
+        try {
+          const bin = atob(window.MIYU_MODEL_GLB);
+          const bytes = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+          parseMiyuGLTF(bytes.buffer);
+        } catch (b64Err) {
+          console.warn("Base64 decode MIYU failed:", b64Err);
+          resolve();
+        }
+      } else if (typeof window.loadScriptAsync === "function") {
+        if (window.showGameToast) {
+          window.showGameToast("⏳ Memuat model Kasumizawa Miyu (SRT)...", 3500);
+        }
+        window.loadScriptAsync("assets/js/data/characters/miyu_model_data.js").then(() => {
+          if (window.MIYU_MODEL_GLB) {
+            try {
+              const bin = atob(window.MIYU_MODEL_GLB);
+              const bytes = new Uint8Array(bin.length);
+              for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+              parseMiyuGLTF(bytes.buffer);
+            } catch (err) {
+              console.warn("Base64 decode error on loaded MIYU script:", err);
+              resolve();
+            }
+          } else {
+            console.warn("MIYU_MODEL_GLB undefined after script load.");
+            resolve();
+          }
+        }).catch((err) => {
+          console.error("Failed to dynamically load miyu_model_data.js:", err);
+          resolve();
+        });
+      } else {
+        resolve();
+      }
+    });
+    return this._miyuLoadingPromise;
+  }
   setCharacter(charName) {
     const upper = (charName || "").toUpperCase();
     this.activeCharacter = (upper === "MIYU") ? "MIYU" : "MINATO";
+    if (this.activeCharacter === "MIYU" && !this.miyuLoaded) {
+      this.loadMiyuModelAsync(() => {
+        if (this.miyuAvatarGroup) {
+          this.miyuAvatarGroup.visible = (this.activeCharacter === "MIYU");
+        }
+      });
+    }
     if (this.minatoAvatarGroup) {
       this.minatoAvatarGroup.visible = (this.activeCharacter === "MINATO");
     }
     if (this.miyuAvatarGroup) {
-      this.miyuAvatarGroup.visible = (this.activeCharacter === "MIYU");
+      this.miyuAvatarGroup.visible = (this.activeCharacter === "MIYU" && this.miyuLoaded);
     }
     this.updateNameplateTexture();
     const charBtn = document.getElementById("btn-switch-char");
