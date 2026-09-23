@@ -189,16 +189,43 @@ class VehiclePhysicsEngine {
     const isSprinting = Boolean(input.space || input.shift);
     const maxWalkSpeed = isSprinting ? 14.5 : 5.5;
     let forwardInput = 0;
-    let turnInput = 0;
+    let rightInput = 0;
     if (input.forward) forwardInput += 1;
     if (input.backward) forwardInput -= 1;
-    if (input.left) turnInput -= 1;
-    if (input.right) turnInput += 1;
-    if (turnInput !== 0) {
-      this.walkerRotation -= turnInput * 2.8 * dt;
+    if (input.left) rightInput -= 1;
+    if (input.right) rightInput += 1;
+    const camAngle = (typeof window.getWalkerCameraHeading === "function")
+      ? window.getWalkerCameraHeading()
+      : (this.walkerRotation + (window.cameraYawOffset || 0));
+    const isAiming = Boolean(window.world && window.world.isAiming && window.world.activeCharacter === "MIYU");
+    const hasInput = (forwardInput !== 0 || rightInput !== 0);
+    let moveDirX = 0;
+    let moveDirZ = 0;
+    if (hasInput) {
+      const sinC = Math.sin(camAngle);
+      const cosC = Math.cos(camAngle);
+      moveDirX = sinC * forwardInput + cosC * rightInput;
+      moveDirZ = cosC * forwardInput - sinC * rightInput;
+      const len = Math.hypot(moveDirX, moveDirZ);
+      if (len > 0.001) {
+        moveDirX /= len;
+        moveDirZ /= len;
+      }
+      if (isAiming) {
+        this.walkerRotation = camAngle;
+      } else {
+        const targetRot = Math.atan2(moveDirX, moveDirZ);
+        let diff = targetRot - this.walkerRotation;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        const turnSpeed = isSprinting ? 18.0 : 14.0;
+        this.walkerRotation += diff * Math.min(1.0, turnSpeed * dt);
+      }
+    } else if (isAiming) {
+      this.walkerRotation = camAngle;
     }
-    const targetSpeed = forwardInput * maxWalkSpeed;
-    const accelRate = isSprinting ? 28.0 : 18.0;
+    const targetSpeed = hasInput ? maxWalkSpeed : 0;
+    const accelRate = hasInput ? (isSprinting ? 32.0 : 22.0) : 26.0;
     if (this.walkerSpeed < targetSpeed) {
       this.walkerSpeed = Math.min(targetSpeed, this.walkerSpeed + accelRate * dt);
     } else if (this.walkerSpeed > targetSpeed) {
@@ -207,8 +234,8 @@ class VehiclePhysicsEngine {
     this.walkerIsMoving = Math.abs(this.walkerSpeed) > 0.3;
     this.walkerIsRunning = isSprinting && this.walkerIsMoving && Math.abs(this.walkerSpeed) > 6.0;
     if (this.walkerIsMoving) {
-      const fwdX = Math.sin(this.walkerRotation);
-      const fwdZ = Math.cos(this.walkerRotation);
+      const fwdX = hasInput ? moveDirX : Math.sin(this.walkerRotation);
+      const fwdZ = hasInput ? moveDirZ : Math.cos(this.walkerRotation);
       const moveDist = this.walkerSpeed * dt;
       const prevX = this.walkerX;
       this.walkerX += fwdX * moveDist;
@@ -306,13 +333,13 @@ class VehiclePhysicsEngine {
   }
   updateSteering(dt, input) {
     const speedRatio = Math.abs(this.speed) / this.config.MAX_SPEED;
-    const speedDamping = 1.0 / (1.0 + speedRatio * 1.85);
+    const speedDamping = 1.0 / (1.0 + speedRatio * 1.15);
     const targetLock = this.maxSteerAngle * speedDamping;
     let targetAngle = 0;
     if (input.left) targetAngle = targetLock;
     else if (input.right) targetAngle = -targetLock;
-    const steerRate = 6.2;
-    this.steeringAngle += (targetAngle - this.steeringAngle) * steerRate * dt;
+    const steerRate = (targetAngle === 0) ? 14.0 : 10.5;
+    this.steeringAngle += (targetAngle - this.steeringAngle) * Math.min(1.0, steerRate * dt);
   }
   updateLongitudinalDrive(dt, input) {
     this.isAccelerating = false;
@@ -323,14 +350,15 @@ class VehiclePhysicsEngine {
     }
     if (input.forward) {
       this.isAccelerating = true;
-      this.boostLevel = Math.min(2.8, this.boostLevel + 2.2 * dt);
-      if (this.speed < -0.5) {
+      this.reverseEngageTimer = 0;
+      this.boostLevel = Math.min(2.8, this.boostLevel + 2.4 * dt);
+      if (this.speed < -0.4) {
         this.speed += this.config.BRAKE_FORCE * dt;
         this.isBraking = true;
       } else {
         const boostMultiplier = 1.0 + (this.boostLevel / 2.8) * 0.45;
         const speedFraction = Math.max(0, this.speed / this.config.MAX_SPEED);
-        const torqueMultiplier = (1.0 - Math.pow(speedFraction, 1.7) * 0.65) * boostMultiplier;
+        const torqueMultiplier = (1.0 - Math.pow(speedFraction, 1.6) * 0.60) * boostMultiplier;
         this.speed = Math.min(this.speed + this.config.ACCELERATION * torqueMultiplier * dt, this.config.MAX_SPEED);
       }
     } else {
@@ -344,13 +372,20 @@ class VehiclePhysicsEngine {
       }
       this.boostLevel = Math.max(0, this.boostLevel - 5.0 * dt);
       if (input.backward) {
-        if (this.speed > 0.5) {
+        if (this.speed > 0.4) {
           this.isBraking = true;
           this.speed = Math.max(0, this.speed - this.config.BRAKE_FORCE * dt);
+          this.reverseEngageTimer = 0;
         } else {
-          this.speed = Math.max(this.speed - this.config.ACCELERATION * 0.55 * dt, this.config.MAX_REVERSE_SPEED);
+          this.reverseEngageTimer = (this.reverseEngageTimer || 0) + dt;
+          if (this.reverseEngageTimer > 0.08) {
+            this.speed = Math.max(this.speed - this.config.ACCELERATION * 0.65 * dt, this.config.MAX_REVERSE_SPEED);
+          } else {
+            this.speed = 0;
+          }
         }
       } else {
+        this.reverseEngageTimer = 0;
         const rollFriction = this.config.FRICTION * dt;
         if (this.speed > 0) {
           this.speed = Math.max(0, this.speed - rollFriction);
@@ -416,11 +451,11 @@ class VehiclePhysicsEngine {
     let targetAngularVelocity = (this.speed / wheelBase) * Math.sin(this.steeringAngle);
     const downforceRatio = Math.pow(Math.abs(this.speed) / this.config.MAX_SPEED, 2.0);
     const aeroGripBonus = 1.0 + downforceRatio * 1.5;
-    const gripCoeff = handbrake ? 0.50 : 1.35;
+    const gripCoeff = handbrake ? 0.62 : 1.45;
     const maxLatAcc = gripCoeff * 9.81 * aeroGripBonus;
     const maxSafeYawRate = maxLatAcc / Math.max(Math.abs(this.speed), 3.5);
     targetAngularVelocity = Math.max(-maxSafeYawRate, Math.min(maxSafeYawRate, targetAngularVelocity));
-    const yawResponsiveness = 8.5;
+    const yawResponsiveness = 10.5;
     this.angularVelocity += (targetAngularVelocity - this.angularVelocity) * yawResponsiveness * dt;
     this.rotation += this.angularVelocity * dt;
     const lateralSpeed = Math.abs(this.angularVelocity * this.speed);

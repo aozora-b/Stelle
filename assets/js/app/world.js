@@ -342,7 +342,9 @@ class TokyoCityWorld {
           console.warn("Error parsing CCITY GLB:", e);
         }
       };
-      if (window.CCITY_BUILDING_GLB) {
+      this.createRealCityBuildings = () => {
+        if (!window.CCITY_BUILDING_GLB || this._ccityBuildingsLoaded) return;
+        this._ccityBuildingsLoaded = true;
         try {
           const bin = atob(window.CCITY_BUILDING_GLB);
           const bytes = new Uint8Array(bin.length);
@@ -351,6 +353,9 @@ class TokyoCityWorld {
         } catch (err) {
           console.warn("Base64 decode CCITY failed:", err);
         }
+      };
+      if (window.CCITY_BUILDING_GLB) {
+        this.createRealCityBuildings();
       }
     }
     this.createDetailedTokyoSkylineBackdrop(isLocationClear);
@@ -416,10 +421,11 @@ class TokyoCityWorld {
     this.scene.add(instancedMesh);
   }
   createTokyoRealCityModels() {
-    if (typeof THREE.GLTFLoader !== "function") return;
-    const loader = new THREE.GLTFLoader();
-    if (window.TOKYO_TOWER_GLB) {
+    this.createTokyoTowerModel = () => {
+      if (!window.TOKYO_TOWER_GLB || this._tokyoTowerLoaded || typeof THREE.GLTFLoader !== "function") return;
+      this._tokyoTowerLoaded = true;
       try {
+        const loader = new THREE.GLTFLoader();
         const bin = atob(window.TOKYO_TOWER_GLB);
         const bytes = new Uint8Array(bin.length);
         for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
@@ -451,9 +457,12 @@ class TokyoCityWorld {
       } catch (err) {
         console.warn("Failed to load Tokyo Tower GLB:", err);
       }
-    }
-    if (window.TOKYO_CITY_GLB) {
+    };
+    this.createTokyoCityBlocksModel = () => {
+      if (!window.TOKYO_CITY_GLB || this._tokyoCityBlocksLoaded || typeof THREE.GLTFLoader !== "function") return;
+      this._tokyoCityBlocksLoaded = true;
       try {
+        const loader = new THREE.GLTFLoader();
         const bin = atob(window.TOKYO_CITY_GLB);
         const bytes = new Uint8Array(bin.length);
         for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
@@ -500,33 +509,33 @@ class TokyoCityWorld {
               });
             }
             this.tokyoCityBlocks.push(block);
-              const wallKeywords = ['wall', 'dumpster', 'pole', 'vending', 'townace', 'hotel', 'bakery', 'plantstore', 'hedge', 'gate', 'bar', 'net', 'opacity'];
-              block.traverse((child) => {
-                if (child.isMesh && !block.walkableMeshes.includes(child)) {
-                  const mName = (child.name || "").toLowerCase();
-                  const matName = (child.material && child.material.name ? child.material.name : "").toLowerCase();
-                  if (wallKeywords.some(kw => mName.includes(kw) || matName.includes(kw))) {
-                    if (mName.includes("fence") || matName.includes("fence") || matName.includes("cobble")) return;
-                    const bbox = new THREE.Box3().setFromObject(child);
-                    const widthX = bbox.max.x - bbox.min.x;
-                    const depthZ = bbox.max.z - bbox.min.z;
-                    const heightY = bbox.max.y - bbox.min.y;
-                    if (widthX > 15.0 && depthZ > 8.0) return;
-                    if (widthX > 0.15 && depthZ > 0.15 && heightY > 0.35) {
-                      this.physics.addStaticCollider(
-                        bbox.min.x,
-                        bbox.max.x,
-                        bbox.min.z,
-                        bbox.max.z,
-                        bbox.max.y,
-                        child.name || (loc.tag + "_wall"),
-                        bbox.min.y
-                      );
-                    }
+            const wallKeywords = ['wall', 'dumpster', 'pole', 'vending', 'townace', 'hotel', 'bakery', 'plantstore', 'hedge', 'gate', 'bar', 'net', 'opacity'];
+            block.traverse((child) => {
+              if (child.isMesh && !block.walkableMeshes.includes(child)) {
+                const mName = (child.name || "").toLowerCase();
+                const matName = (child.material && child.material.name ? child.material.name : "").toLowerCase();
+                if (wallKeywords.some(kw => mName.includes(kw) || matName.includes(kw))) {
+                  if (mName.includes("fence") || matName.includes("fence") || matName.includes("cobble")) return;
+                  const bbox = new THREE.Box3().setFromObject(child);
+                  const widthX = bbox.max.x - bbox.min.x;
+                  const depthZ = bbox.max.z - bbox.min.z;
+                  const heightY = bbox.max.y - bbox.min.y;
+                  if (widthX > 15.0 && depthZ > 8.0) return;
+                  if (widthX > 0.15 && depthZ > 0.15 && heightY > 0.35) {
+                    this.physics.addStaticCollider(
+                      bbox.min.x,
+                      bbox.max.x,
+                      bbox.min.z,
+                      bbox.max.z,
+                      bbox.max.y,
+                      child.name || (loc.tag + "_wall"),
+                      bbox.min.y
+                    );
                   }
                 }
-              });
+              }
             });
+          });
           if (this.physics) {
             const cityRaycaster = new THREE.Raycaster();
             const cityDown = new THREE.Vector3(0, -1, 0);
@@ -557,6 +566,12 @@ class TokyoCityWorld {
       } catch (err) {
         console.warn("Failed to load Tokyo City GLB:", err);
       }
+    };
+    if (window.TOKYO_TOWER_GLB) {
+      this.createTokyoTowerModel();
+    }
+    if (window.TOKYO_CITY_GLB) {
+      this.createTokyoCityBlocksModel();
     }
   }
   createSakuraNatureSystem() {
@@ -2293,15 +2308,13 @@ class TokyoCityWorld {
     nCtx.fill();
     const isMiyu = (this.activeCharacter === "MIYU");
     nCtx.strokeStyle = isMiyu ? "#00f0ff" : "#f5a623";
-    nCtx.lineWidth = 4;
+    nCtx.lineWidth = 3;
     nCtx.stroke();
     nCtx.fillStyle = "#ffffff";
-    nCtx.font = "bold 32px sans-serif";
+    nCtx.font = "600 36px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
     nCtx.textAlign = "center";
-    nCtx.fillText(isMiyu ? "🎯 KASUMIZAWA MIYU 🎯" : "⚡ MINATO NAMIKAZE ⚡", 256, 52);
-    nCtx.fillStyle = isMiyu ? "#00f0ff" : "#f5a623";
-    nCtx.font = "bold 22px monospace";
-    nCtx.fillText(isMiyu ? "SRT SPECIAL ACADEMY // RABBIT 4" : "YONDAIME HOKAGE // YELLOW FLASH", 256, 92);
+    nCtx.textBaseline = "middle";
+    nCtx.fillText(isMiyu ? "Kasumizawa Miyu" : "Minato Namikaze", 256, 64);
     if (this.heroNameplate && this.heroNameplate.material && this.heroNameplate.material.map) {
       this.heroNameplate.material.map.needsUpdate = true;
     }

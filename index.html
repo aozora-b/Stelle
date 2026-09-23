@@ -162,8 +162,69 @@
             <button id="opt-audio-toggle" class="hub-option-btn">🔊</button>
           </div>
           <div class="hub-option-row">
-            <span class="hub-option-label" id="lbl-opt-quality">Kualitas</span>
-            <button id="opt-quality-toggle" class="hub-option-btn">Auto (Adaptif)</button>
+            <span class="hub-option-label" id="lbl-opt-quality">Preset Kualitas Grafik</span>
+            <button id="opt-quality-toggle" class="hub-option-btn">Auto (Adaptif 60FPS) ⚙️</button>
+          </div>
+          <div id="graphics-settings-panel" class="graphics-settings-panel">
+            <div class="graphics-sub-header">
+              <span>PENGATURAN GRAFIK LANJUTAN</span>
+            </div>
+            <div class="graphics-setting-item">
+              <div class="g-item-header">
+                <span class="g-item-title">Resolusi Render (Pixel Ratio)</span>
+                <span id="val-res-scale" class="g-item-val">Auto (1.0x)</span>
+              </div>
+              <div class="g-item-buttons">
+                <button class="g-btn" data-setting="res" data-val="0.5">0.5x</button>
+                <button class="g-btn" data-setting="res" data-val="0.75">0.75x</button>
+                <button class="g-btn active" data-setting="res" data-val="1.0">1.0x</button>
+                <button class="g-btn" data-setting="res" data-val="1.25">1.25x</button>
+              </div>
+            </div>
+            <div class="graphics-setting-item">
+              <div class="g-item-header">
+                <span class="g-item-title">Kualitas Bayangan (Shadows)</span>
+                <span id="val-shadows" class="g-item-val">Lembut (PCF)</span>
+              </div>
+              <div class="g-item-buttons">
+                <button class="g-btn" data-setting="shadow" data-val="OFF">Mati</button>
+                <button class="g-btn" data-setting="shadow" data-val="HARD">Sederhana</button>
+                <button class="g-btn active" data-setting="shadow" data-val="SOFT">Lembut</button>
+              </div>
+            </div>
+            <div class="graphics-setting-item">
+              <div class="g-item-header">
+                <span class="g-item-title">Jarak Pandang (Draw Distance)</span>
+                <span id="val-draw-dist" class="g-item-val">Sedang (350m)</span>
+              </div>
+              <div class="g-item-buttons">
+                <button class="g-btn" data-setting="fog" data-val="NEAR">Dekat</button>
+                <button class="g-btn active" data-setting="fog" data-val="MED">Sedang</button>
+                <button class="g-btn" data-setting="fog" data-val="FAR">Jauh</button>
+              </div>
+            </div>
+            <div class="graphics-setting-item">
+              <div class="g-item-header">
+                <span class="g-item-title">Pencahayaan & Efek Visual</span>
+                <span id="val-lighting" class="g-item-val">Penuh</span>
+              </div>
+              <div class="g-item-buttons">
+                <button class="g-btn" data-setting="lights" data-val="OFF">Mati</button>
+                <button class="g-btn" data-setting="lights" data-val="ECO">Hemat</button>
+                <button class="g-btn active" data-setting="lights" data-val="FULL">Penuh</button>
+              </div>
+            </div>
+            <div class="graphics-setting-item">
+              <div class="g-item-header">
+                <span class="g-item-title">Batas Frame Rate (FPS Limiter)</span>
+                <span id="val-fps-limit" class="g-item-val">60 FPS</span>
+              </div>
+              <div class="g-item-buttons">
+                <button class="g-btn" data-setting="fps" data-val="30">30 FPS</button>
+                <button class="g-btn active" data-setting="fps" data-val="60">60 FPS</button>
+                <button class="g-btn" data-setting="fps" data-val="MAX">Maksimal</button>
+              </div>
+            </div>
           </div>
           <div class="hub-option-row">
             <span class="hub-option-label" id="lbl-opt-fps">Indikator FPS</span>
@@ -526,7 +587,10 @@
               <span class="v-stat-val">95%</span>
             </div>
           </div>
-          <button class="garage-select-btn" data-car="LAMBORGHINI">✓ SEDANG DIGUNAKAN</button>
+          <div class="card-action-row">
+            <button class="garage-inspect-btn" data-car="LAMBORGHINI">👁️ LIHAT 3D</button>
+            <button class="garage-select-btn" data-car="LAMBORGHINI">✓ SEDANG DIGUNAKAN</button>
+          </div>
         </div>
         <div class="garage-vehicle-card" data-car="BUGATTI">
           <div class="vehicle-card-badge">QUAD-TURBO HYPERCAR</div>
@@ -558,7 +622,10 @@
               <span class="v-stat-val">88%</span>
             </div>
           </div>
-          <button class="garage-select-btn" data-car="BUGATTI">PILIH MOBIL INI</button>
+          <div class="card-action-row">
+            <button class="garage-inspect-btn" data-car="BUGATTI">👁️ LIHAT 3D</button>
+            <button class="garage-select-btn" data-car="BUGATTI">PILIH MOBIL INI</button>
+          </div>
         </div>
         <div class="garage-vehicle-card" data-car="F1">
           <div class="vehicle-card-badge">FORMULA 1 RACER</div>
@@ -590,7 +657,10 @@
               <span class="v-stat-val">99%</span>
             </div>
           </div>
-          <button class="garage-select-btn" data-car="F1">PILIH MOBIL INI</button>
+          <div class="card-action-row">
+            <button class="garage-inspect-btn" data-car="F1">👁️ LIHAT 3D</button>
+            <button class="garage-select-btn" data-car="F1">PILIH MOBIL INI</button>
+          </div>
         </div>
         <div class="garage-vehicle-card" data-car="DODGE">
           <div class="vehicle-card-badge">AMERICAN MUSCLE V8</div>
@@ -622,12 +692,104 @@
               <span class="v-stat-val">82% (Drift King)</span>
             </div>
           </div>
-          <button class="garage-select-btn" data-car="DODGE">PILIH MOBIL INI</button>
+          <div class="card-action-row">
+            <button class="garage-inspect-btn" data-car="DODGE">👁️ LIHAT 3D</button>
+            <button class="garage-select-btn" data-car="DODGE">PILIH MOBIL INI</button>
+          </div>
         </div>
       </div>
       <div class="garage-footer">
         <div class="garage-hint">
           <span>💡 Tekan tombol <strong>🏎️ MOBIL</strong> atau tombol keyboard <strong>C</strong> kapan saja untuk membuka Showroom &bull; Tekan <strong>F</strong> untuk keluar/masuk mobil</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="character-modal" class="garage-modal" role="dialog" aria-modal="true" aria-labelledby="char-modal-title">
+    <div class="garage-card">
+      <div class="garage-header">
+        <div class="garage-title-wrap">
+          <span class="garage-badge">👤 SHOWROOM KARAKTER // HERO SELECT 👤</span>
+          <h2 id="char-modal-title" class="garage-title">PILIHAN KARAKTER STELLE</h2>
+          <p class="garage-subtitle">Pilih karakter anime hero untuk menjelajahi Tokyo Expressway & Celestial Skyway dengan kemampuan unik masing-masing.</p>
+        </div>
+        <button id="char-modal-close-btn" class="garage-close-btn" aria-label="Tutup Pilihan Karakter">✕</button>
+      </div>
+      <div class="garage-grid" id="char-cards-grid">
+        <div class="garage-vehicle-card active" data-char="MINATO">
+          <div class="vehicle-card-badge">KONOHAGAKURE // HOKAGE</div>
+          <div class="vehicle-card-header">
+            <h3 class="vehicle-name">Minato Namikaze</h3>
+            <span class="vehicle-model">Yondaime Hokage // Yellow Flash</span>
+          </div>
+          <p class="vehicle-engine">Shinobi Jenius &bull; Pencipta Rasengan &bull; Master Hiraishin</p>
+          <div class="vehicle-features">
+            <span class="v-tag">Hiraishin no Jutsu</span>
+            <span class="v-tag">Lempar Kunai Khusus</span>
+            <span class="v-tag">Aura Chakra Cepat</span>
+            <span class="v-tag">Sprint Halus 14.5 m/s</span>
+          </div>
+          <div class="vehicle-stats">
+            <div class="v-stat-row">
+              <span class="v-stat-label">Kecepatan Gerak</span>
+              <div class="v-stat-bar-bg"><div class="v-stat-bar-fill" style="width: 98%;"></div></div>
+              <span class="v-stat-val">EX (98%)</span>
+            </div>
+            <div class="v-stat-row">
+              <span class="v-stat-label">Hiraishin Teleport</span>
+              <div class="v-stat-bar-bg"><div class="v-stat-bar-fill" style="width: 100%;"></div></div>
+              <span class="v-stat-val">Instant</span>
+            </div>
+            <div class="v-stat-row">
+              <span class="v-stat-label">Kontrol Chakra</span>
+              <div class="v-stat-bar-bg"><div class="v-stat-bar-fill" style="width: 96%;"></div></div>
+              <span class="v-stat-val">SSS</span>
+            </div>
+          </div>
+          <div class="card-action-row">
+            <button class="char-inspect-btn" data-char="MINATO">👁️ LIHAT 3D</button>
+            <button class="char-select-btn" data-char="MINATO">✓ SEDANG DIGUNAKAN</button>
+          </div>
+        </div>
+        <div class="garage-vehicle-card" data-char="MIYU">
+          <div class="vehicle-card-badge">SRT SPECIAL ACADEMY</div>
+          <div class="vehicle-card-header">
+            <h3 class="vehicle-name">Kasumizawa Miyu</h3>
+            <span class="vehicle-model">RABBIT Squad // Sniper Specialist</span>
+          </div>
+          <p class="vehicle-engine">Siswi SRT Kivotos &bull; Penembak Jitu Senyap &bull; Taktik Kamuflase</p>
+          <div class="vehicle-features">
+            <span class="v-tag">Mosin-Nagant Sniper</span>
+            <span class="v-tag">Zoom Optik 4X / 8X / 12X</span>
+            <span class="v-tag">Laser Rangefinder</span>
+            <span class="v-tag">Kotak Kardus Kamuflase</span>
+          </div>
+          <div class="vehicle-stats">
+            <div class="v-stat-row">
+              <span class="v-stat-label">Akurasi Tembakan</span>
+              <div class="v-stat-bar-bg"><div class="v-stat-bar-fill" style="width: 98%;"></div></div>
+              <span class="v-stat-val">98% (Pinpoint)</span>
+            </div>
+            <div class="v-stat-row">
+              <span class="v-stat-label">Jarak Bidik Optik</span>
+              <div class="v-stat-bar-bg"><div class="v-stat-bar-fill" style="width: 100%;"></div></div>
+              <span class="v-stat-val">12.0X Scope</span>
+            </div>
+            <div class="v-stat-row">
+              <span class="v-stat-label">Kamuflase & Stealth</span>
+              <div class="v-stat-bar-bg"><div class="v-stat-bar-fill" style="width: 95%;"></div></div>
+              <span class="v-stat-val">95%</span>
+            </div>
+          </div>
+          <div class="card-action-row">
+            <button class="char-inspect-btn" data-char="MIYU">👁️ LIHAT 3D</button>
+            <button class="char-select-btn" data-char="MIYU">PILIH KARAKTER</button>
+          </div>
+        </div>
+      </div>
+      <div class="garage-footer">
+        <div class="garage-hint">
+          <span>💡 Tekan tombol keyboard <strong>X</strong> kapan saja saat jalan kaki untuk berganti karakter instan</span>
         </div>
       </div>
     </div>
@@ -812,9 +974,6 @@
   <script src="assets/js/data/vehicles/lamborghini_model_data.js"></script>
   <script src="assets/js/data/characters/hero_model_data.js"></script>
   <script src="assets/js/data/environment/sky_textures.js"></script>
-  <script src="assets/js/data/environment/tokyo_city_model_data.js"></script>
-  <script src="assets/js/data/environment/ccity_building_data.js"></script>
-  <script src="assets/js/data/environment/tokyo_tower_data.js"></script>
   <script src="assets/js/app/config.js"></script>
   <script src="assets/js/app/i18n.js"></script>
   <script src="assets/js/app/shaders.js"></script>

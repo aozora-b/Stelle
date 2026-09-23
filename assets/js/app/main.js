@@ -69,6 +69,10 @@
   let currentQualityModeIndex = 0;
   let activeResolvedQuality = QUALITY_MODES.HIGH;
   let isFpsCounterVisible = false;
+  let targetFpsLimit = 0;
+  let lastFrameTime = 0;
+  const CHECKPOINT_STORAGE_KEY = "tokyo_save_point_v1";
+  let isCharModalOpen = false;
   let fpsFrameCount = 0;
   let lastFpsTime = performance.now();
   let currentFps = 60;
@@ -197,7 +201,11 @@
     setupEventHandlers();
     setupCameraOrbitControls();
     setupTouchControls();
+    setupCharacterModal();
+    setupGranularGraphicsSettings();
     applyQualityTier(QUALITY_MODES.AUTO, false);
+    updateWalkBtnUI();
+    loadCheckpointState();
     if (window._updatePreloader) window._updatePreloader(100, "SISTEM SIAP! MASUK JALUR TOL...");
     const preloader = document.getElementById("app-preloader");
     if (preloader) {
@@ -209,6 +217,8 @@
       }, 350);
     }
     requestAnimationFrame(renderLoop);
+    streamBackgroundWorldChunks();
+    setInterval(saveCheckpointState, 10000);
   }
   function cacheDOMElements() {
     UI.checkpointPill = document.getElementById("checkpoint-pill");
@@ -311,6 +321,10 @@
     window.QUALITY_MODES = QUALITY_MODES;
     window.applyQualityTier = applyQualityTier;
     window.getFPS = () => currentFps;
+    window.getWalkerCameraHeading = () => ((physics ? physics.walkerRotation : 0) + cameraYawOffset);
+    window.saveCheckpointState = saveCheckpointState;
+    window.loadCheckpointState = loadCheckpointState;
+    window.toggleCharacterModal = toggleCharacterModal;
   }
   function setupCelestialGate() {
     if (UI.walkPrompt) {
@@ -629,6 +643,8 @@
   let inspectorRotY = 0.35;
   let inspectorCurrentTab = "CHAR";
   let inspectorModelRoot = null;
+  let inspectorPedestal = null;
+  let inspectorRing = null;
   let inspectorAnimId = null;
   let isInspectorDragging = false;
   let isInspectorPanning = false;
@@ -656,19 +672,31 @@
   }
   window.openRPGInspectorModal = openRPGInspectorModal;
   window.openInspectStudio = (target) => {
-    openRPGInspectorModal();
     if (target) {
       const t = String(target).toUpperCase();
       if (t === "CAR") {
-        const tabCar = document.getElementById("inspect-tab-car");
-        if (tabCar) tabCar.click();
+        inspectorCurrentTab = "CAR";
       } else {
-        const tabChar = document.getElementById("inspect-tab-char");
-        if (tabChar) tabChar.click();
+        inspectorCurrentTab = "CHAR";
+      }
+    }
+    openRPGInspectorModal();
+    if (target) {
+      const t = String(target).toUpperCase();
+      const tabCar = document.getElementById("inspect-tab-car");
+      const tabChar = document.getElementById("inspect-tab-char");
+      if (t === "CAR") {
+        if (tabCar) tabCar.classList.add("active");
+        if (tabChar) tabChar.classList.remove("active");
+      } else {
+        if (tabChar) tabChar.classList.add("active");
+        if (tabCar) tabCar.classList.remove("active");
         if (t === "MIYU" || t === "MINATO") {
           switchCharacter(t);
         }
       }
+      loadInspectorModel();
+      updateInspectorLoreCard();
     }
   };
   window.setInspectFocus = (focusName) => {
@@ -728,21 +756,29 @@
     inspectorScene.add(rimLight);
     const pedestalGeo = new THREE.CylinderGeometry(1.6, 1.8, 0.15, 48);
     const pedestalMat = new THREE.MeshStandardMaterial({ color: 0x141d2e, roughness: 0.4, metalness: 0.6 });
-    const pedestal = new THREE.Mesh(pedestalGeo, pedestalMat);
-    pedestal.position.y = -0.075;
-    pedestal.receiveShadow = true;
-    inspectorScene.add(pedestal);
+    inspectorPedestal = new THREE.Mesh(pedestalGeo, pedestalMat);
+    inspectorPedestal.position.y = -0.075;
+    inspectorPedestal.receiveShadow = true;
+    inspectorScene.add(inspectorPedestal);
     const ringGeo = new THREE.RingGeometry(1.58, 1.68, 48);
     const ringMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff, side: THREE.DoubleSide });
-    const ring = new THREE.Mesh(ringGeo, ringMat);
-    ring.rotation.x = -Math.PI / 2;
-    ring.position.y = 0.005;
-    inspectorScene.add(ring);
+    inspectorRing = new THREE.Mesh(ringGeo, ringMat);
+    inspectorRing.rotation.x = -Math.PI / 2;
+    inspectorRing.position.y = 0.005;
+    inspectorScene.add(inspectorRing);
     loadInspectorModel();
     setupInspectorControls(mount);
     function animateInspector() {
       if (!isRPGInspectorOpen) return;
       inspectorAnimId = requestAnimationFrame(animateInspector);
+      const mw = mount.clientWidth || 800;
+      const mh = mount.clientHeight || 600;
+      const pr = Math.min(window.devicePixelRatio || 1, 2);
+      if (inspectorRenderer.domElement.width !== Math.floor(mw * pr) || inspectorRenderer.domElement.height !== Math.floor(mh * pr)) {
+        inspectorRenderer.setSize(mw, mh);
+        inspectorCamera.aspect = mw / mh;
+        inspectorCamera.updateProjectionMatrix();
+      }
       const cy = Math.cos(inspectorRotY);
       const sy = Math.sin(inspectorRotY);
       const cx = Math.cos(inspectorRotX);
@@ -783,9 +819,26 @@
       inspectorModelRoot = null;
     }
     inspectorModelRoot = new THREE.Group();
+    const btnBody = document.getElementById("preset-body");
+    const btnFace = document.getElementById("preset-face");
+    const btnWeapon = document.getElementById("preset-weapon");
+    const btnReset = document.getElementById("preset-reset");
     if (inspectorCurrentTab === "CHAR") {
-      inspectorTarget.set(0, 0.9, 0);
+      if (inspectorPedestal) {
+        inspectorPedestal.scale.set(1.0, 1.0, 1.0);
+        inspectorPedestal.position.y = -0.075;
+      }
+      if (inspectorRing) {
+        inspectorRing.scale.set(1.0, 1.0, 1.0);
+      }
+      inspectorTarget.set(0, 0.88, 0);
       inspectorCamDist = 2.8;
+      inspectorRotX = 0.14;
+      inspectorRotY = 0.35;
+      if (inspectorCamera) {
+        inspectorCamera.fov = 45.0;
+        inspectorCamera.updateProjectionMatrix();
+      }
       if (world && world.activeCharacter === "MIYU") {
         if (!world.miyuLoaded && typeof world.loadMiyuModelAsync === "function") {
           world.loadMiyuModelAsync(() => {
@@ -809,17 +862,45 @@
           inspectorModelRoot.add(clone);
         }
       }
+      if (btnBody) btnBody.innerHTML = "👤 SELURUH TUBUH";
+      if (btnFace) btnFace.innerHTML = "👤 WAJAH / KEPALA";
+      if (btnWeapon) btnWeapon.innerHTML = "🎯 SENJATA / DETAIL";
+      if (btnReset) btnReset.innerHTML = "🔄 RESET SUDUT";
     } else {
-      inspectorTarget.set(0, 0.45, 0);
-      inspectorCamDist = 4.2;
+      if (inspectorPedestal) {
+        inspectorPedestal.scale.set(2.4, 1.0, 2.4);
+        inspectorPedestal.position.y = -0.075;
+      }
+      if (inspectorRing) {
+        inspectorRing.scale.set(2.4, 2.4, 2.4);
+      }
+      inspectorTarget.set(0, 0.65, 0);
+      inspectorCamDist = 5.4;
+      inspectorRotX = 0.16;
+      inspectorRotY = 0.45;
+      if (inspectorCamera) {
+        inspectorCamera.fov = 40.0;
+        inspectorCamera.updateProjectionMatrix();
+      }
       if (carModel && carModel.chassisGroup) {
         const carClone = carModel.chassisGroup.clone(true);
         carClone.position.set(0, 0, 0);
         carClone.rotation.set(0, 0, 0);
+        carClone.updateMatrixWorld(true);
+        const box = new THREE.Box3().setFromObject(carClone);
+        const bottomOffset = -box.min.y;
+        carClone.position.set(0, bottomOffset, 0);
         inspectorModelRoot.add(carClone);
       }
+      if (btnBody) btnBody.innerHTML = "🏎️ SELURUH MOBIL";
+      if (btnFace) btnFace.innerHTML = "💺 KOKPIT / INTERIOR";
+      if (btnWeapon) btnWeapon.innerHTML = "🛞 VELG & AERODINAMIKA";
+      if (btnReset) btnReset.innerHTML = "🔄 RESET SUDUT";
     }
     inspectorScene.add(inspectorModelRoot);
+    window.inspectorModelRoot = inspectorModelRoot;
+    window.inspectorRing = inspectorRing;
+    window.inspectorPedestal = inspectorPedestal;
   }
   function setupInspectorControls(mount) {
     const onMouseDown = (e) => {
@@ -868,26 +949,33 @@
       btnBody.onclick = () => {
         clearPresetActive();
         btnBody.classList.add("active");
-        inspectorCamDist = (inspectorCurrentTab === "CHAR") ? 2.6 : 4.2;
-        inspectorTarget.set(0, (inspectorCurrentTab === "CHAR") ? 0.82 : 0.45, 0);
-        inspectorRotX = 0.14;
-        inspectorRotY = 0.35;
+        if (inspectorCurrentTab === "CAR") {
+          inspectorCamDist = 5.4;
+          inspectorTarget.set(0, 0.65, 0);
+          inspectorRotX = 0.16;
+          inspectorRotY = 0.45;
+        } else {
+          inspectorCamDist = 2.6;
+          inspectorTarget.set(0, 0.85, 0);
+          inspectorRotX = 0.14;
+          inspectorRotY = 0.35;
+        }
       };
     }
     if (btnFace) {
       btnFace.onclick = () => {
         clearPresetActive();
         btnFace.classList.add("active");
-        if (inspectorCurrentTab === "CHAR") {
-          inspectorCamDist = 1.95;
-          inspectorTarget.set(0, 0.82, 0);
-          inspectorRotX = 0.14;
-          inspectorRotY = 0.30;
+        if (inspectorCurrentTab === "CAR") {
+          inspectorCamDist = 2.4;
+          inspectorTarget.set(-0.35, 0.72, 0.0);
+          inspectorRotX = 0.22;
+          inspectorRotY = 0.65;
         } else {
-          inspectorCamDist = 2.0;
-          inspectorTarget.set(0, 0.5, 1.2);
-          inspectorRotX = 0.15;
-          inspectorRotY = 0.35;
+          inspectorCamDist = 1.35;
+          inspectorTarget.set(0, 1.38, 0);
+          inspectorRotX = 0.08;
+          inspectorRotY = 0.15;
         }
       };
     }
@@ -895,16 +983,16 @@
       btnWeapon.onclick = () => {
         clearPresetActive();
         btnWeapon.classList.add("active");
-        if (inspectorCurrentTab === "CHAR") {
-          inspectorCamDist = 1.55;
-          inspectorTarget.set(-0.15, 0.65, 0.0);
+        if (inspectorCurrentTab === "CAR") {
+          inspectorCamDist = 2.6;
+          inspectorTarget.set(0.9, 0.42, 1.2);
+          inspectorRotX = 0.14;
+          inspectorRotY = 0.75;
+        } else {
+          inspectorCamDist = 1.45;
+          inspectorTarget.set(-0.15, 0.85, 0.0);
           inspectorRotX = 0.12;
           inspectorRotY = 0.45;
-        } else {
-          inspectorCamDist = 2.0;
-          inspectorTarget.set(0.9, 0.35, 0.8);
-          inspectorRotX = 0.15;
-          inspectorRotY = 0.5;
         }
       };
     }
@@ -912,10 +1000,17 @@
       btnReset.onclick = () => {
         clearPresetActive();
         btnReset.classList.add("active");
-        inspectorRotX = 0.14;
-        inspectorRotY = 0.35;
-        inspectorCamDist = (inspectorCurrentTab === "CHAR") ? 2.6 : 4.4;
-        inspectorTarget.set(0, (inspectorCurrentTab === "CHAR") ? 0.82 : 0.45, 0);
+        if (inspectorCurrentTab === "CAR") {
+          inspectorCamDist = 5.4;
+          inspectorTarget.set(0, 0.65, 0);
+          inspectorRotX = 0.16;
+          inspectorRotY = 0.45;
+        } else {
+          inspectorCamDist = 2.8;
+          inspectorTarget.set(0, 0.88, 0);
+          inspectorRotX = 0.14;
+          inspectorRotY = 0.35;
+        }
       };
     }
     const tabChar = document.getElementById("inspect-tab-char");
@@ -1114,14 +1209,21 @@
     }
   }
   function updateWalkBtnUI() {
+    const isWalking = Boolean(physics && physics.mode === "WALKING");
     if (UI.walkBtn) {
-      if (physics && physics.mode === "WALKING") {
-        UI.walkBtn.textContent = "🚗 NAIK";
-      } else {
-        UI.walkBtn.textContent = "🚶 TURUN";
-      }
+      UI.walkBtn.textContent = isWalking ? "🚗 NAIK" : "🚶 TURUN";
+    }
+    if (UI.switchCharBtn) {
+      UI.switchCharBtn.style.display = isWalking ? "inline-flex" : "none";
+    }
+    if (UI.charSkillBtn) {
+      UI.charSkillBtn.style.display = isWalking ? "inline-flex" : "none";
+    }
+    if (UI.changeCarBtn) {
+      UI.changeCarBtn.style.display = isWalking ? "none" : "inline-flex";
     }
   }
+  window.updateWalkBtnUI = updateWalkBtnUI;
   function checkSkywayAndGateProximity() {
     if (!physics) return;
     if (UI.walkPrompt) {
@@ -1184,6 +1286,10 @@
         currentQualityModeIndex = (currentQualityModeIndex + 1) % QUALITY_CYCLE.length;
         const nextMode = QUALITY_CYCLE[currentQualityModeIndex];
         applyQualityTier(nextMode, false);
+        const panel = document.getElementById("graphics-settings-panel");
+        if (panel) {
+          panel.classList.toggle("open");
+        }
         if (audio) audio.playChime();
       });
     }
@@ -1256,6 +1362,7 @@
       carModel.setContactShadow(resolvedTier !== QUALITY_MODES.HIGH);
     }
     updateQualityButtonLabel();
+    syncGranularButtonsFromTier(resolvedTier);
     if (isAutoTriggered) {
       const toastMsg = (resolvedTier === QUALITY_MODES.MEDIUM)
         ? (window.I18N ? window.I18N.getText("hub.toastQualityAutoDowngrade") : "⚡ Mode Sedang diaktifkan otomatis agar 60 FPS tetap mulus!")
@@ -1446,7 +1553,7 @@
           toggleWalkAndDrive();
           break;
         case "KeyX":
-          switchCharacter();
+          toggleCharacterModal();
           break;
         case "KeyE":
           triggerCharacterSkill();
@@ -1467,7 +1574,11 @@
           if (audio) audio.playHorn();
           break;
         case "KeyC":
-          toggleGarageModal();
+          if (physics && physics.mode === "WALKING") {
+            toggleCharacterModal();
+          } else {
+            toggleGarageModal();
+          }
           break;
         case "KeyN":
           cycleWeather();
@@ -1487,6 +1598,8 @@
         case "Escape":
           if (isRPGInspectorOpen) {
             closeRPGInspectorModal();
+          } else if (isCharModalOpen) {
+            closeCharacterModal();
           } else if (isGarageModalOpen) {
             closeGarageModal();
           } else if (isGateModalOpen) {
@@ -1554,7 +1667,7 @@
     }
     if (UI.switchCharBtn) {
       UI.switchCharBtn.addEventListener("click", () => {
-        switchCharacter();
+        toggleCharacterModal();
       });
     }
     if (UI.charSkillBtn) {
@@ -1595,7 +1708,23 @@
         const carType = btn.getAttribute("data-car");
         if (carType) {
           changeCar(carType);
+          saveCheckpointState();
           setTimeout(closeGarageModal, 320);
+        }
+      });
+    });
+    document.querySelectorAll(".vehicle-inspect-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const carType = btn.getAttribute("data-car");
+        if (carType) {
+          if (carModel && carModel.currentCarType !== carType) {
+            changeCar(carType);
+          }
+          closeGarageModal();
+          openRPGInspectorModal();
+          inspectorCurrentTab = "CAR";
+          loadInspectorModel();
+          updateInspectorLoreCard();
         }
       });
     });
@@ -1980,8 +2109,284 @@
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
   }
+  function syncGranularButtonsFromTier(tier) {
+    const panel = document.getElementById("graphics-settings-panel");
+    if (!panel) return;
+    const setBtnActive = (setting, val) => {
+      const btns = panel.querySelectorAll(`.g-btn[data-setting="${setting}"]`);
+      btns.forEach(b => {
+        b.classList.toggle("active", b.getAttribute("data-val") === String(val));
+      });
+    };
+    if (tier === QUALITY_MODES.HIGH) {
+      setBtnActive("res", "1.0");
+      setBtnActive("shadow", "SOFT");
+      setBtnActive("fog", "FAR");
+      setBtnActive("lights", "FULL");
+      const r = document.getElementById("val-res-scale"); if (r) r.textContent = "1.00x";
+      const s = document.getElementById("val-shadows"); if (s) s.textContent = "Lembut (PCF Soft)";
+      const f = document.getElementById("val-draw-dist"); if (f) f.textContent = "Jauh (650m)";
+      const l = document.getElementById("val-lighting"); if (l) l.textContent = "Penuh (Full)";
+    } else if (tier === QUALITY_MODES.MEDIUM) {
+      setBtnActive("res", "1.0");
+      setBtnActive("shadow", "HARD");
+      setBtnActive("fog", "MED");
+      setBtnActive("lights", "ECO");
+      const r = document.getElementById("val-res-scale"); if (r) r.textContent = "1.00x";
+      const s = document.getElementById("val-shadows"); if (s) s.textContent = "Sederhana (Hard)";
+      const f = document.getElementById("val-draw-dist"); if (f) f.textContent = "Sedang (350m)";
+      const l = document.getElementById("val-lighting"); if (l) l.textContent = "Hemat (Eco)";
+    } else {
+      setBtnActive("res", "0.75");
+      setBtnActive("shadow", "OFF");
+      setBtnActive("fog", "NEAR");
+      setBtnActive("lights", "OFF");
+      const r = document.getElementById("val-res-scale"); if (r) r.textContent = "0.75x";
+      const s = document.getElementById("val-shadows"); if (s) s.textContent = "Mati (Off)";
+      const f = document.getElementById("val-draw-dist"); if (f) f.textContent = "Dekat (180m)";
+      const l = document.getElementById("val-lighting"); if (l) l.textContent = "Mati (Off)";
+    }
+  }
+  function setupGranularGraphicsSettings() {
+    const panel = document.getElementById("graphics-settings-panel");
+    if (!panel) return;
+    panel.querySelectorAll(".g-btn[data-setting]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const settingType = btn.getAttribute("data-setting");
+        const val = btn.getAttribute("data-val");
+        const parent = btn.parentElement;
+        if (parent) {
+          parent.querySelectorAll(".g-btn").forEach(b => b.classList.remove("active"));
+        }
+        btn.classList.add("active");
+        if (settingType === "res") {
+          const ratio = parseFloat(val) || 1.0;
+          if (renderer) renderer.setPixelRatio(ratio);
+          const lbl = document.getElementById("val-res-scale");
+          if (lbl) lbl.textContent = `${ratio.toFixed(2)}x`;
+        } else if (settingType === "shadow") {
+          const lbl = document.getElementById("val-shadows");
+          if (val === "OFF") {
+            if (renderer) renderer.shadowMap.enabled = false;
+            if (world && world.sunLight) world.sunLight.castShadow = false;
+            if (lbl) lbl.textContent = "Mati (Off)";
+          } else if (val === "HARD") {
+            if (renderer) {
+              renderer.shadowMap.enabled = true;
+              renderer.shadowMap.type = THREE.BasicShadowMap;
+            }
+            if (world && world.sunLight) world.sunLight.castShadow = true;
+            if (lbl) lbl.textContent = "Sederhana (Hard)";
+          } else {
+            if (renderer) {
+              renderer.shadowMap.enabled = true;
+              renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            }
+            if (world && world.sunLight) world.sunLight.castShadow = true;
+            if (lbl) lbl.textContent = "Lembut (PCF Soft)";
+          }
+        } else if (settingType === "fog") {
+          const lbl = document.getElementById("val-draw-dist");
+          if (val === "NEAR") {
+            if (scene && scene.fog) { scene.fog.near = 40; scene.fog.far = 180; }
+            if (camera) { camera.far = 250; camera.updateProjectionMatrix(); }
+            if (lbl) lbl.textContent = "Dekat (180m)";
+          } else if (val === "MED") {
+            if (scene && scene.fog) { scene.fog.near = 75; scene.fog.far = 350; }
+            if (camera) { camera.far = 500; camera.updateProjectionMatrix(); }
+            if (lbl) lbl.textContent = "Sedang (350m)";
+          } else {
+            if (scene && scene.fog) { scene.fog.near = 120; scene.fog.far = 650; }
+            if (camera) { camera.far = 900; camera.updateProjectionMatrix(); }
+            if (lbl) lbl.textContent = "Jauh (650m)";
+          }
+        } else if (settingType === "lights") {
+          const lbl = document.getElementById("val-lighting");
+          if (val === "OFF") {
+            if (carModel && typeof carModel.setUnderglowVisible === "function") carModel.setUnderglowVisible(false);
+            if (lbl) lbl.textContent = "Mati (Off)";
+          } else if (val === "ECO") {
+            if (carModel && typeof carModel.setUnderglowVisible === "function") carModel.setUnderglowVisible(false);
+            if (lbl) lbl.textContent = "Hemat (Eco)";
+          } else {
+            if (carModel && typeof carModel.setUnderglowVisible === "function") carModel.setUnderglowVisible(true);
+            if (lbl) lbl.textContent = "Penuh (Full)";
+          }
+        } else if (settingType === "fps-limit") {
+          const lbl = document.getElementById("val-fps-limit");
+          if (val === "30") {
+            targetFpsLimit = 30;
+            if (lbl) lbl.textContent = "30 FPS (Hemat Baterai)";
+          } else if (val === "60") {
+            targetFpsLimit = 60;
+            if (lbl) lbl.textContent = "60 FPS (Standar Mulus)";
+          } else {
+            targetFpsLimit = 0;
+            if (lbl) lbl.textContent = "Tanpa Batas (Max Hz)";
+          }
+        }
+        if (audio) audio.playChime();
+      });
+    });
+  }
+  function openCharacterModal() {
+    const modal = document.getElementById("character-modal");
+    if (!modal) return;
+    isCharModalOpen = true;
+    modal.classList.add("open");
+    const active = (world && world.activeCharacter) || "MINATO";
+    document.querySelectorAll("#char-cards-grid .garage-vehicle-card").forEach(c => {
+      c.classList.toggle("active", c.getAttribute("data-char") === active);
+    });
+    document.querySelectorAll(".char-select-btn").forEach(b => {
+      const isAct = b.getAttribute("data-char") === active;
+      b.textContent = isAct ? "✓ SEDANG DIGUNAKAN" : "PILIH KARAKTER";
+    });
+    if (audio) audio.playChime();
+  }
+  function closeCharacterModal() {
+    const modal = document.getElementById("character-modal");
+    if (!modal) return;
+    isCharModalOpen = false;
+    modal.classList.remove("open");
+  }
+  function toggleCharacterModal() {
+    if (isCharModalOpen) closeCharacterModal();
+    else openCharacterModal();
+  }
+  function setupCharacterModal() {
+    const closeBtn = document.getElementById("char-modal-close-btn");
+    if (closeBtn) closeBtn.addEventListener("click", closeCharacterModal);
+    const modal = document.getElementById("character-modal");
+    if (modal) {
+      modal.addEventListener("click", (e) => {
+        if (e.target === modal) closeCharacterModal();
+      });
+    }
+    document.querySelectorAll(".char-select-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const charName = btn.getAttribute("data-char");
+        if (charName && world) {
+          world.setCharacter(charName);
+          document.querySelectorAll("#char-cards-grid .garage-vehicle-card").forEach(c => {
+            c.classList.toggle("active", c.getAttribute("data-char") === charName);
+          });
+          document.querySelectorAll(".char-select-btn").forEach(b => {
+            const isAct = b.getAttribute("data-char") === charName;
+            b.textContent = isAct ? "✓ SEDANG DIGUNAKAN" : "PILIH KARAKTER";
+          });
+          saveCheckpointState();
+          setTimeout(closeCharacterModal, 280);
+        }
+      });
+    });
+    document.querySelectorAll(".char-inspect-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const charName = btn.getAttribute("data-char");
+        if (charName) {
+          if (world && world.activeCharacter !== charName) {
+            world.setCharacter(charName);
+          }
+          closeCharacterModal();
+          openRPGInspectorModal();
+          inspectorCurrentTab = "CHAR";
+          loadInspectorModel();
+          updateInspectorLoreCard();
+        }
+      });
+    });
+  }
+  function streamBackgroundWorldChunks() {
+    const scheduleIdle = window.requestIdleCallback || ((cb) => setTimeout(cb, 1200));
+    scheduleIdle(() => {
+      if (typeof window.loadScriptAsync !== "function") return;
+      window.loadScriptAsync("assets/js/data/city/tokyo_tower_data.js").then(() => {
+        if (world && typeof world.createTokyoTowerModel === "function") {
+          world.createTokyoTowerModel();
+        }
+        return window.loadScriptAsync("assets/js/data/city/ccity_building_data.js");
+      }).then(() => {
+        if (world && typeof world.createRealCityBuildings === "function") {
+          world.createRealCityBuildings();
+        }
+        return window.loadScriptAsync("assets/js/data/city/tokyo_city_model_data.js");
+      }).then(() => {
+        if (world && typeof world.createTokyoCityBlocksModel === "function") {
+          world.createTokyoCityBlocksModel();
+        }
+        console.log("Tokyo City background chunks streamed successfully without latency!");
+      }).catch(err => {
+        console.warn("Background world chunk streaming error:", err);
+      });
+    });
+  }
+  function saveCheckpointState() {
+    if (!physics) return;
+    try {
+      const data = {
+        mode: physics.mode,
+        x: (physics.mode === "WALKING") ? physics.walkerX : physics.x,
+        y: (physics.mode === "WALKING") ? physics.walkerY : physics.y,
+        z: (physics.mode === "WALKING") ? physics.walkerZ : physics.z,
+        rot: (physics.mode === "WALKING") ? physics.walkerRotation : physics.rotation,
+        carType: (carModel && carModel.currentCarType) ? carModel.currentCarType : "rx7",
+        charName: (world && world.activeCharacter) ? world.activeCharacter : "MINATO",
+        timestamp: Date.now()
+      };
+      localStorage.setItem(CHECKPOINT_STORAGE_KEY, JSON.stringify(data));
+    } catch (e) {}
+  }
+  function loadCheckpointState() {
+    try {
+      const raw = localStorage.getItem(CHECKPOINT_STORAGE_KEY);
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      if (!data || typeof data.x !== "number") return;
+      if (data.carType && carModel && data.carType !== carModel.currentCarType) {
+        changeCar(data.carType);
+      }
+      if (data.charName && world && data.charName !== world.activeCharacter) {
+        world.setCharacter(data.charName);
+      }
+      if (physics) {
+        if (data.mode === "WALKING") {
+          physics.walkerX = data.x;
+          physics.walkerY = data.y;
+          physics.walkerZ = data.z;
+          physics.walkerRotation = data.rot || 0;
+          physics.mode = "WALKING";
+          physics.speed = 0;
+          physics.walkerSpeed = 0;
+          physics.x = data.x;
+          physics.z = data.z - 2.5;
+        } else {
+          physics.x = data.x;
+          physics.y = data.y;
+          physics.z = data.z;
+          physics.rotation = data.rot || 0;
+          physics.mode = "VEHICLE";
+          physics.speed = 0;
+        }
+      }
+      updateWalkBtnUI();
+      if (window.showGameToast) {
+        window.showGameToast("📍 Titik Simpan Terakhir Dimuat!", 2500);
+      }
+    } catch (e) {
+      console.warn("Could not load checkpoint state:", e);
+    }
+  }
   let previousTimestamp = performance.now();
   function renderLoop(currentTimestamp) {
+    requestAnimationFrame(renderLoop);
+    if (targetFpsLimit > 0) {
+      const elapsed = currentTimestamp - lastFrameTime;
+      const interval = 1000 / targetFpsLimit;
+      if (elapsed < interval - 1.5) {
+        return;
+      }
+      lastFrameTime = currentTimestamp - (elapsed % interval);
+    }
     const rawDt = (currentTimestamp - previousTimestamp) / 1000;
     previousTimestamp = currentTimestamp;
     const dt = Math.min(Math.max(rawDt, 0.0001), 0.05);
@@ -2021,6 +2426,5 @@
     } catch (renderErr) {
       console.warn("Non-fatal frame error caught, continuing render:", renderErr);
     }
-    requestAnimationFrame(renderLoop);
   }
 })();
