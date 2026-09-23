@@ -72,7 +72,7 @@
   let isFpsCounterVisible = false;
   let targetFpsLimit = 0;
   let lastFrameTime = 0;
-  const CHECKPOINT_STORAGE_KEY = "tokyo_save_point_v1";
+  const CHECKPOINT_STORAGE_KEY = "tokyo_cathedral_save_v2";
   let isCharModalOpen = false;
   let fpsFrameCount = 0;
   let lastFpsTime = performance.now();
@@ -1325,7 +1325,7 @@
     }
     if (UI.optUnstuckBtn) {
       UI.optUnstuckBtn.addEventListener("click", () => {
-        physics.resetPosition(0, -42, 0);
+        physics.resetPosition(-6.0, 980, Math.PI);
         handleVoidFall();
         closeSidebarHub();
       });
@@ -1789,8 +1789,8 @@
         }
         return;
       }
-      const zoomDelta = e.deltaY * 0.0012;
-      cameraZoomMultiplier = Math.max(0.38, Math.min(2.4, cameraZoomMultiplier + zoomDelta));
+      const zoomDelta = e.deltaY * (0.0012 * Math.max(0.4, cameraZoomMultiplier * 0.45));
+      cameraZoomMultiplier = Math.max(0.18, Math.min(18.0, cameraZoomMultiplier + zoomDelta));
     }, { passive: false });
     canvas.addEventListener("contextmenu", (e) => {
       if (physics && physics.mode === "WALKING" && world && world.activeCharacter === "MIYU") {
@@ -1819,10 +1819,10 @@
       const sens = (world && world.isAiming) ? Math.min(1.0, camera.fov / 60.0) : 1.0;
       if (physics && physics.mode === "WALKING") {
         walkerCameraYaw -= dx * 0.0055 * sens;
-        cameraPitchOffset = Math.max(-0.45, Math.min(0.55, cameraPitchOffset + dy * 0.004 * sens));
+        cameraPitchOffset = Math.max(-1.15, Math.min(1.20, cameraPitchOffset + dy * 0.004 * sens));
       } else {
         cameraYawOffset -= dx * 0.006 * sens;
-        cameraPitchOffset = Math.max(-1.35, Math.min(0.65, cameraPitchOffset + dy * 0.0045 * sens));
+        cameraPitchOffset = Math.max(-1.35, Math.min(1.15, cameraPitchOffset + dy * 0.0045 * sens));
       }
     });
     window.addEventListener("mouseup", () => {
@@ -1844,10 +1844,10 @@
       const sens = (world && world.isAiming) ? Math.min(1.0, camera.fov / 60.0) : 1.0;
       if (physics && physics.mode === "WALKING") {
         walkerCameraYaw -= dx * 0.0065 * sens;
-        cameraPitchOffset = Math.max(-0.45, Math.min(0.55, cameraPitchOffset + dy * 0.0045 * sens));
+        cameraPitchOffset = Math.max(-1.15, Math.min(1.20, cameraPitchOffset + dy * 0.0045 * sens));
       } else {
         cameraYawOffset -= dx * 0.007 * sens;
-        cameraPitchOffset = Math.max(-1.35, Math.min(0.65, cameraPitchOffset + dy * 0.0055 * sens));
+        cameraPitchOffset = Math.max(-1.35, Math.min(1.15, cameraPitchOffset + dy * 0.0055 * sens));
       }
     }, { passive: true });
     canvas.addEventListener("touchend", () => {
@@ -1879,7 +1879,7 @@
     if (audio) audio.playChime();
   }
   function resetVehicle() {
-    physics.resetPosition(0, -42, 0);
+    physics.resetPosition(-6.0, 980, Math.PI);
     isCinematic = false;
     cinematicTarget = null;
     cameraYawOffset = 0;
@@ -2363,6 +2363,10 @@
         y: (physics.mode === "WALKING") ? physics.walkerY : physics.y,
         z: (physics.mode === "WALKING") ? physics.walkerZ : physics.z,
         rot: (physics.mode === "WALKING") ? physics.walkerRotation : physics.rotation,
+        carX: physics.x,
+        carY: physics.y,
+        carZ: physics.z,
+        carRot: physics.rotation,
         carType: (carModel && carModel.currentCarType) ? carModel.currentCarType : "rx7",
         charName: (world && world.activeCharacter) ? world.activeCharacter : "MINATO",
         timestamp: Date.now()
@@ -2373,7 +2377,25 @@
   function loadCheckpointState() {
     try {
       const raw = localStorage.getItem(CHECKPOINT_STORAGE_KEY);
-      if (!raw) return;
+      if (!raw) {
+        if (physics) {
+          physics.walkerX = 0;
+          physics.walkerY = 32.05;
+          physics.walkerZ = 1010;
+          physics.walkerRotation = 0;
+          walkerCameraYaw = 0;
+          cameraPitchOffset = 0;
+          physics.mode = "WALKING";
+          physics.speed = 0;
+          physics.walkerSpeed = 0;
+          physics.x = -6.0;
+          physics.y = 32.57;
+          physics.z = 980;
+          physics.rotation = Math.PI;
+        }
+        updateWalkBtnUI();
+        return;
+      }
       const data = JSON.parse(raw);
       if (!data || typeof data.x !== "number") return;
       if (data.carType && carModel && data.carType !== carModel.currentCarType) {
@@ -2393,8 +2415,10 @@
           physics.mode = "WALKING";
           physics.speed = 0;
           physics.walkerSpeed = 0;
-          physics.x = data.x;
-          physics.z = data.z - 2.5;
+          physics.x = (typeof data.carX === "number") ? data.carX : (data.x - 6.0);
+          physics.y = (typeof data.carY === "number") ? data.carY : 32.57;
+          physics.z = (typeof data.carZ === "number") ? data.carZ : (data.z - 30.0);
+          physics.rotation = (typeof data.carRot === "number") ? data.carRot : Math.PI;
         } else {
           physics.x = data.x;
           physics.y = data.y;

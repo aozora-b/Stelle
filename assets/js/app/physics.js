@@ -2,10 +2,15 @@ class VehiclePhysicsEngine {
   constructor(config) {
     this.config = config || window.APP_CONFIG.CAR;
     this.worldConfig = window.APP_CONFIG.WORLD;
-    this.x = 0;
-    this.y = 0.52;
-    this.z = -42;
-    this.rotation = 0;
+    this.x = -5.0;
+    this.y = 32.57;
+    this.z = 980;
+    this.rotation = Math.PI;
+    this.mode = "WALKING";
+    this.walkerX = 0;
+    this.walkerY = 32.05;
+    this.walkerZ = 1010;
+    this.walkerRotation = 0;
     this.speed = 0;
     this.lateralVelocity = 0;
     this.verticalVelocity = 0;
@@ -76,9 +81,9 @@ class VehiclePhysicsEngine {
     this.obstacles.push(obstacle);
     return obstacle;
   }
-  resetPosition(x = 0, z = -42, rotation = 0) {
+  resetPosition(x = -5.0, z = 980, rotation = Math.PI) {
     this.x = x;
-    this.y = 0.52;
+    this.y = 32.57;
     this.z = z;
     this.rotation = rotation;
     this.speed = 0;
@@ -109,17 +114,13 @@ class VehiclePhysicsEngine {
         return customElev;
       }
     }
-    if (z >= 950 && z <= 1015) {
-      const distToSanctuaryCenter = Math.hypot(x, z - 975);
-      if (distToSanctuaryCenter <= 26.0) {
-        return 32.0;
-      }
-      return null;
+    if (z >= 950 && z <= 1200 && Math.abs(x) <= 90.0) {
+      return 32.05;
     }
     if (z >= 475 && z < 975) {
       if (Math.abs(x) <= 9.2) {
         const progress = (z - 475) / 500.0;
-        return 0.05 + progress * 31.95;
+        return 0.05 + progress * 32.0;
       }
     }
     if (z >= 340 && z <= 580 && Math.abs(x) <= 16.0) {
@@ -175,8 +176,8 @@ class VehiclePhysicsEngine {
       if (this.walkerY < -10.0) {
         if (window.soundEngine) window.soundEngine.playVoidFallSplash();
         this.walkerX = 0;
-        this.walkerZ = 478;
-        this.walkerY = 0.5;
+        this.walkerZ = 1010;
+        this.walkerY = 32.05;
         this.walkerRotation = 0;
         this.walkerVerticalVel = 0;
         this.walkerIsFalling = false;
@@ -574,7 +575,7 @@ class VehiclePhysicsEngine {
     if (window.soundEngine) {
       window.soundEngine.playVoidFallSplash();
     }
-    this.resetPosition(0, -42, 0);
+    this.resetPosition(-5.0, 980, Math.PI);
     if (typeof this.onVoidFallCallback === "function") {
       this.onVoidFallCallback();
     }

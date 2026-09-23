@@ -361,54 +361,6 @@ class TokyoCityWorld {
     this.createDetailedTokyoSkylineBackdrop(isLocationClear);
   }
   createDetailedTokyoSkylineBackdrop(isLocationClear) {
-    const canvas = document.createElement("canvas");
-    canvas.width = 128;
-    canvas.height = 256;
-    const ctx = canvas.getContext("2d");
-    ctx.fillStyle = "#1e2638";
-    ctx.fillRect(0, 0, 128, 256);
-    for (let y = 8; y < 248; y += 14) {
-      for (let x = 6; x < 122; x += 10) {
-        const isLit = Math.random() > 0.42;
-        if (isLit) {
-          const warm = Math.random() > 0.35;
-          ctx.fillStyle = warm ? "#ffeaa7" : "#74b9ff";
-        } else {
-          ctx.fillStyle = "#0f172a";
-        }
-        ctx.fillRect(x, y, 7, 9);
-      }
-    }
-    const windowTexture = new THREE.CanvasTexture(canvas);
-    windowTexture.wrapS = THREE.RepeatWrapping;
-    windowTexture.wrapT = THREE.RepeatWrapping;
-    const skylineMat = new THREE.MeshStandardMaterial({
-      map: windowTexture,
-      roughness: 0.35,
-      metalness: 0.55
-    });
-    const boxGeo = new THREE.BoxGeometry(1, 1, 1);
-    const count = 48;
-    const instancedMesh = new THREE.InstancedMesh(boxGeo, skylineMat, count);
-    instancedMesh.receiveShadow = true;
-    const dummy = new THREE.Object3D();
-    let placed = 0;
-    for (let i = 0; i < count * 4 && placed < count; i++) {
-      const angle = (placed / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.3;
-      const dist = 380 + Math.random() * 220;
-      const bx = Math.cos(angle) * dist;
-      const bz = Math.sin(angle) * dist;
-      if (!isLocationClear(bx, bz)) continue;
-      const bW = 28 + Math.random() * 24;
-      const bD = 28 + Math.random() * 24;
-      const bH = 75 + Math.random() * 120;
-      dummy.position.set(bx, bH / 2, bz);
-      dummy.scale.set(bW, bH, bD);
-      dummy.updateMatrix();
-      instancedMesh.setMatrixAt(placed, dummy.matrix);
-      placed++;
-    }
-    this.scene.add(instancedMesh);
   }
   createTokyoRealCityModels() {
     this.createTokyoTowerModel = () => {
@@ -1774,18 +1726,17 @@ class TokyoCityWorld {
   }
   createSkywaySanctuaryPlatform(parent) {
     const platform = new THREE.Group();
-    platform.position.set(0, 32.0, 975);
-    const deckGeo = new THREE.CylinderGeometry(22.0, 23.5, 2.0, 36);
+    const deckGeo = new THREE.CylinderGeometry(24.0, 25.5, 2.4, 40);
     const deckMat = new THREE.MeshStandardMaterial({
       color: 0x141b29,
       roughness: 0.35,
       metalness: 0.7
     });
     const deck = new THREE.Mesh(deckGeo, deckMat);
-    deck.position.y = -1.0;
+    deck.position.set(0, 32.0 - 1.2, 975);
     deck.receiveShadow = true;
     platform.add(deck);
-    [10.0, 16.0, 21.0].forEach((r, idx) => {
+    [10.0, 16.0, 22.0].forEach((r, idx) => {
       const ringGeo = new THREE.RingGeometry(r - 0.25, r + 0.25, 48);
       const ringMat = new THREE.MeshBasicMaterial({
         color: idx % 2 === 0 ? 0x00f0ff : 0xf5a623,
@@ -1793,15 +1744,36 @@ class TokyoCityWorld {
       });
       const ring = new THREE.Mesh(ringGeo, ringMat);
       ring.rotation.x = -Math.PI / 2;
-      ring.position.y = 0.05;
+      ring.position.set(0, 32.05, 975);
       platform.add(ring);
     });
+    const terraceGeo = new THREE.BoxGeometry(176.0, 2.4, 230.0);
+    const terraceMat = new THREE.MeshStandardMaterial({
+      color: 0x1a2233,
+      roughness: 0.45,
+      metalness: 0.4
+    });
+    const terrace = new THREE.Mesh(terraceGeo, terraceMat);
+    terrace.position.set(0, 32.0 - 1.2, 1080);
+    terrace.receiveShadow = true;
+    platform.add(terrace);
+    const aisleGeo = new THREE.PlaneGeometry(16.0, 220.0);
+    const aisleMat = new THREE.MeshStandardMaterial({
+      color: 0x22304d,
+      roughness: 0.25,
+      metalness: 0.65
+    });
+    const aislePavement = new THREE.Mesh(aisleGeo, aisleMat);
+    aislePavement.rotation.x = -Math.PI / 2;
+    aislePavement.position.set(0, 32.06, 1080);
+    aislePavement.receiveShadow = true;
+    platform.add(aislePavement);
     const obeliskCount = 8;
     for (let i = 0; i < obeliskCount; i++) {
       const angle = (i / obeliskCount) * Math.PI * 2;
       if (Math.abs(angle - Math.PI) < 0.3) continue;
-      const ox = Math.sin(angle) * 19.5;
-      const oz = Math.cos(angle) * 19.5;
+      const ox = Math.sin(angle) * 21.5;
+      const oz = 975 + Math.cos(angle) * 21.5;
       const obeliskGeo = new THREE.ConeGeometry(1.2, 8.0, 6);
       const obeliskMat = new THREE.MeshStandardMaterial({
         color: 0x00f0ff,
@@ -1810,13 +1782,72 @@ class TokyoCityWorld {
         roughness: 0.1
       });
       const obelisk = new THREE.Mesh(obeliskGeo, obeliskMat);
-      obelisk.position.set(ox, 4.0, oz);
+      obelisk.position.set(ox, 32.0 + 4.0, oz);
       platform.add(obelisk);
       const oLight = new THREE.PointLight(0x00f0ff, 1.2, 18);
-      oLight.position.set(ox, 8.2, oz);
+      oLight.position.set(ox, 32.0 + 8.2, oz);
       platform.add(oLight);
     }
+    [-85, 85].forEach((bx) => {
+      for (let bz = 990; bz <= 1170; bz += 45) {
+        const brazierGeo = new THREE.CylinderGeometry(0.8, 1.2, 3.2, 8);
+        const brazierMat = new THREE.MeshStandardMaterial({ color: 0x121722, metalness: 0.85, roughness: 0.2 });
+        const brazier = new THREE.Mesh(brazierGeo, brazierMat);
+        brazier.position.set(bx, 32.0 + 1.6, bz);
+        platform.add(brazier);
+        const flameLight = new THREE.PointLight(0xf5a623, 1.4, 25);
+        flameLight.position.set(bx, 32.0 + 3.8, bz);
+        platform.add(flameLight);
+      }
+    });
     parent.add(platform);
+    this.loadCathedralModelAsync();
+  }
+  loadCathedralModelAsync() {
+    if (this._cathedralLoaded || typeof THREE.GLTFLoader !== "function") return;
+    this._cathedralLoaded = true;
+    const loader = new THREE.GLTFLoader();
+    const modelUrl = "assets/models/cathedral.glb";
+    console.log("Loading Grand Gothic Cathedral 3D model from:", modelUrl);
+    loader.load(
+      modelUrl,
+      (gltf) => {
+        const cathedral = gltf.scene;
+        cathedral.name = "cathedral";
+        const scale = 0.08;
+        cathedral.scale.set(scale, scale, scale);
+        cathedral.position.set(0, 61.43, 1050);
+        cathedral.traverse((child) => {
+          if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+            if (child.material) {
+              child.material.side = THREE.DoubleSide;
+              child.material.roughness = Math.max(0.35, child.material.roughness || 0.6);
+            }
+          }
+        });
+        this.scene.add(cathedral);
+        this.cathedralModel = cathedral;
+        console.log("Grand Gothic Cathedral 3D Model Loaded & Placed successfully at Celestial Sanctuary!");
+        const altarLight = new THREE.PointLight(0xffdf99, 2.8, 60);
+        altarLight.position.set(0, 38.0, 1075);
+        this.scene.add(altarLight);
+        const naveLight1 = new THREE.PointLight(0xffeaad, 1.8, 48);
+        naveLight1.position.set(0, 42.0, 1030);
+        this.scene.add(naveLight1);
+        const naveLight2 = new THREE.PointLight(0xffeaad, 1.8, 48);
+        naveLight2.position.set(0, 42.0, 1005);
+        this.scene.add(naveLight2);
+        if (window.showGameToast) {
+          window.showGameToast("✨ Katedral Suci Celestial Berhasil Dimuat", 3000);
+        }
+      },
+      undefined,
+      (err) => {
+        console.warn("Cathedral GLB load error:", err);
+      }
+    );
   }
   createGateOfLightPortal(parent) {
     const portalGroup = new THREE.Group();
@@ -2329,7 +2360,7 @@ class TokyoCityWorld {
           loader.parse(buffer, "", (gltf) => {
             const miyuRoot = gltf.scene;
             miyuRoot.scale.set(1.0, 1.0, 1.0);
-            miyuRoot.rotation.y = Math.PI;
+            miyuRoot.rotation.y = 0;
             miyuRoot.traverse((child) => {
               if (child.isMesh || child.isSkinnedMesh) {
                 child.castShadow = true;
