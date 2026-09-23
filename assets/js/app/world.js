@@ -1118,6 +1118,13 @@ class TokyoCityWorld {
         }
       });
     }
+    if (this.garageCarBays && this.garageCarBays.length > 0) {
+      this.garageCarBays.forEach((bay) => {
+        if (bay.neonRing) {
+          bay.neonRing.rotation.z += dt * 0.6;
+        }
+      });
+    }
     if (this.upperPalaceCrystal) {
       this.upperPalaceCrystal.rotation.y += dt * 0.8;
       this.upperPalaceCrystal.rotation.x += dt * 0.4;
@@ -2059,51 +2066,34 @@ class TokyoCityWorld {
   createCathedralRoyalGarage(parent) {
     const garageGroup = new THREE.Group();
     garageGroup.position.set(0, 0, 0);
-    const floorGeo = new THREE.BoxGeometry(34.0, 1.8, 80.0);
+    const floorGeo = new THREE.BoxGeometry(20.0, 1.8, 78.0);
     const floorMat = new THREE.MeshStandardMaterial({
       color: 0x0c1017,
       roughness: 0.22,
       metalness: 0.75
     });
     const floor = new THREE.Mesh(floorGeo, floorMat);
-    floor.position.set(-38.0, 32.05 - 0.9, 1077.5);
+    floor.position.set(-26.0, 32.05 - 0.9, 1077.0);
     floor.receiveShadow = true;
     garageGroup.add(floor);
-    [-44.0, -32.0].forEach(gx => {
+    [-34.5, -17.5].forEach(gx => {
       const stripGeo = new THREE.PlaneGeometry(0.35, 76.0);
       const stripMat = new THREE.MeshBasicMaterial({ color: 0x00d4ff, transparent: true, opacity: 0.75 });
       const strip = new THREE.Mesh(stripGeo, stripMat);
       strip.rotation.x = -Math.PI / 2;
-      strip.position.set(gx, 32.06, 1077.5);
+      strip.position.set(gx, 32.06, 1077.0);
       garageGroup.add(strip);
     });
-    const wallMat = new THREE.MeshStandardMaterial({ color: 0x181f2c, roughness: 0.85, metalness: 0.15 });
-    const westWall = new THREE.Mesh(new THREE.BoxGeometry(2.0, 16.0, 80.0), wallMat);
-    westWall.position.set(-55.0, 32.05 + 8.0, 1077.5);
-    garageGroup.add(westWall);
-    const northWall = new THREE.Mesh(new THREE.BoxGeometry(36.0, 16.0, 2.0), wallMat);
-    northWall.position.set(-38.0, 32.05 + 8.0, 1118.0);
-    garageGroup.add(northWall);
-    for (let bz = 1045; bz <= 1115; bz += 15) {
-      const beamGeo = new THREE.BoxGeometry(34.0, 1.2, 1.4);
-      const beam = new THREE.Mesh(beamGeo, wallMat);
-      beam.position.set(-38.0, 32.05 + 15.0, bz);
+    const beamMat = new THREE.MeshStandardMaterial({ color: 0x181f2c, roughness: 0.85, metalness: 0.15 });
+    for (let bz = 1045; bz <= 1110; bz += 15) {
+      const beamGeo = new THREE.BoxGeometry(20.0, 0.9, 1.2);
+      const beam = new THREE.Mesh(beamGeo, beamMat);
+      beam.position.set(-26.0, 32.05 + 11.5, bz);
       garageGroup.add(beam);
-      const ledLight = new THREE.PointLight(0xe0f2fe, 1.8, 28);
-      ledLight.position.set(-38.0, 32.05 + 13.5, bz);
+      const ledLight = new THREE.PointLight(0xe0f2fe, 1.8, 22);
+      ledLight.position.set(-26.0, 32.05 + 10.5, bz);
       garageGroup.add(ledLight);
     }
-    const naveArchMat = new THREE.MeshStandardMaterial({ color: 0xf5a623, metalness: 0.8, roughness: 0.2 });
-    const archSignGeo = new THREE.BoxGeometry(0.8, 1.6, 9.0);
-    const archSign = new THREE.Mesh(archSignGeo, naveArchMat);
-    archSign.position.set(-20.0, 32.05 + 9.5, 1070.0);
-    garageGroup.add(archSign);
-    const rampGeo = new THREE.PlaneGeometry(16.0, 20.0);
-    const rampMat = new THREE.MeshStandardMaterial({ color: 0x1a2233, roughness: 0.4, metalness: 0.5 });
-    const ramp = new THREE.Mesh(rampGeo, rampMat);
-    ramp.rotation.x = -Math.PI / 2;
-    ramp.position.set(-38.0, 32.06, 1030.0);
-    garageGroup.add(ramp);
     this.garageCarBays = [
       {
         type: "BUGATTI",
@@ -2111,8 +2101,8 @@ class TokyoCityWorld {
         hp: "1,500 HP",
         topSpeed: "420 km/h",
         colorHex: 0x00d4ff,
-        pos: new THREE.Vector3(-38.0, 32.05, 1055.0),
-        rotY: Math.PI / 2
+        pos: new THREE.Vector3(-26.0, 32.05, 1050.0),
+        rotY: 0
       },
       {
         type: "LAMBORGHINI",
@@ -2120,7 +2110,7 @@ class TokyoCityWorld {
         hp: "770 HP",
         topSpeed: "350 km/h",
         colorHex: 0x39ff14,
-        pos: new THREE.Vector3(-38.0, 32.05, 1070.0),
+        pos: new THREE.Vector3(-26.0, 32.05, 1068.0),
         rotY: Math.PI / 2
       },
       {
@@ -2129,7 +2119,7 @@ class TokyoCityWorld {
         hp: "1,000+ HP",
         topSpeed: "386 km/h",
         colorHex: 0xff8700,
-        pos: new THREE.Vector3(-38.0, 32.05, 1085.0),
+        pos: new THREE.Vector3(-26.0, 32.05, 1086.0),
         rotY: Math.PI / 2
       },
       {
@@ -2138,12 +2128,12 @@ class TokyoCityWorld {
         hp: "717 HP",
         topSpeed: "327 km/h",
         colorHex: 0xff2222,
-        pos: new THREE.Vector3(-38.0, 32.05, 1100.0),
+        pos: new THREE.Vector3(-26.0, 32.05, 1104.0),
         rotY: Math.PI / 2
       }
     ];
     this.garageCarBays.forEach((bay) => {
-      const pedGeo = new THREE.CylinderGeometry(3.6, 3.8, 0.22, 36);
+      const pedGeo = new THREE.CylinderGeometry(3.4, 3.6, 0.22, 36);
       const pedMat = new THREE.MeshStandardMaterial({
         color: 0x151b26,
         metalness: 0.8,
@@ -2153,7 +2143,7 @@ class TokyoCityWorld {
       pedestal.position.set(bay.pos.x, bay.pos.y + 0.11, bay.pos.z);
       pedestal.receiveShadow = true;
       garageGroup.add(pedestal);
-      const neonRingGeo = new THREE.RingGeometry(3.55, 3.75, 48);
+      const neonRingGeo = new THREE.RingGeometry(3.35, 3.55, 48);
       const neonRingMat = new THREE.MeshBasicMaterial({
         color: bay.colorHex,
         side: THREE.DoubleSide
@@ -2162,23 +2152,197 @@ class TokyoCityWorld {
       neonRing.rotation.x = -Math.PI / 2;
       neonRing.position.set(bay.pos.x, bay.pos.y + 0.225, bay.pos.z);
       garageGroup.add(neonRing);
-      const spot = new THREE.SpotLight(bay.colorHex, 3.2, 28, Math.PI / 4.5, 0.45, 1.2);
-      spot.position.set(bay.pos.x, bay.pos.y + 12.0, bay.pos.z);
+      bay.neonRing = neonRing;
+      const spot = new THREE.SpotLight(bay.colorHex, 3.2, 24, Math.PI / 4.2, 0.45, 1.2);
+      spot.position.set(bay.pos.x, bay.pos.y + 10.0, bay.pos.z);
       spot.target = pedestal;
       garageGroup.add(spot);
       garageGroup.add(spot.target);
       const carMesh = this.createShowroomCarMesh(bay.type, bay.colorHex);
       carMesh.position.set(bay.pos.x, bay.pos.y + 0.22, bay.pos.z);
-      carMesh.rotation.y = bay.rotY;
+      carMesh.rotation.y = (bay.type === "BUGATTI") ? 0 : bay.rotY;
       garageGroup.add(carMesh);
       bay.mesh = carMesh;
       const badge = this.createFloatingGameBadge("!", bay.colorHex);
-      badge.position.set(bay.pos.x, bay.pos.y + 3.4, bay.pos.z);
+      badge.position.set(bay.pos.x, bay.pos.y + 3.2, bay.pos.z);
       garageGroup.add(badge);
       bay.badge = badge;
     });
     parent.add(garageGroup);
     this.cathedralGarageGroup = garageGroup;
+    this.loadShowroomDisplayVehiclesAsync();
+  }
+  loadShowroomDisplayVehiclesAsync() {
+    if (!this.garageCarBays || typeof THREE.GLTFLoader !== "function") return;
+    const carFiles = {
+      BUGATTI: "assets/js/data/vehicles/bugatti_model_data.js",
+      LAMBORGHINI: "assets/js/data/vehicles/lamborghini_model_data.js",
+      F1: "assets/js/data/vehicles/mclaren_f1_data.js",
+      DODGE: "assets/js/data/vehicles/dodge_model_data.js"
+    };
+    const getCarB64 = (type) => {
+      if (type === "BUGATTI") return window.BUGATTI_CHIRON_GLB;
+      if (type === "LAMBORGHINI") return window.LAMBORGHINI_GLB;
+      if (type === "F1") return window.MCLAREN_F1_GLB;
+      if (type === "DODGE") return window.DODGE_CHALLENGER_GLB;
+      return null;
+    };
+    const parseAndPlaceBayModel = (bay) => {
+      const b64 = getCarB64(bay.type);
+      if (!b64) return;
+      try {
+        const bin = atob(b64);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        const loader = new THREE.GLTFLoader();
+        loader.parse(bytes.buffer, "", (gltf) => {
+          const model = gltf.scene;
+          if (bay.mesh && bay.mesh.parent) {
+            bay.mesh.parent.remove(bay.mesh);
+          }
+          if (bay.type === "BUGATTI") {
+            const scale = 1.45;
+            model.scale.set(scale, scale, scale);
+            model.rotation.y = 0;
+            model.position.set(bay.pos.x, bay.pos.y + 0.22 - 0.40, bay.pos.z);
+            model.traverse((child) => {
+              if (child.isMesh && child.material) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+                const name = (child.name || child.material.name || "").toLowerCase();
+                if (name.includes("body")) {
+                  child.material = new THREE.MeshPhysicalMaterial({
+                    color: 0x0341ff,
+                    metalness: 0.75,
+                    roughness: 0.15,
+                    clearcoat: 1.0,
+                    clearcoatRoughness: 0.04
+                  });
+                } else if (name.includes("darker") || name.includes("black")) {
+                  child.material = new THREE.MeshPhysicalMaterial({
+                    color: 0x02040a,
+                    metalness: 0.85,
+                    roughness: 0.18,
+                    clearcoat: 0.85
+                  });
+                } else if (name.includes("silver") || name.includes("steel") || name.includes("rims")) {
+                  child.material = new THREE.MeshStandardMaterial({
+                    color: 0xffffff,
+                    metalness: 0.98,
+                    roughness: 0.10
+                  });
+                }
+              }
+            });
+          } else if (bay.type === "LAMBORGHINI") {
+            model.scale.set(1.0, 1.0, 1.0);
+            model.rotation.y = Math.PI / 2;
+            model.position.set(bay.pos.x, bay.pos.y + 0.22 - 0.48, bay.pos.z);
+            model.traverse((child) => {
+              if (child.isMesh && child.material) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+                const name = (child.name || child.material.name || "").toLowerCase();
+                if (name.includes("body") || name.includes("carosserie") || name.includes("paint")) {
+                  child.material = new THREE.MeshPhysicalMaterial({
+                    color: 0x111316,
+                    metalness: 0.88,
+                    roughness: 0.22,
+                    clearcoat: 1.0,
+                    clearcoatRoughness: 0.04
+                  });
+                } else if (name.includes("yellow") || name.includes("gold") || name.includes("accent")) {
+                  child.material = new THREE.MeshStandardMaterial({
+                    color: 0xf5a623,
+                    metalness: 0.75,
+                    roughness: 0.25
+                  });
+                } else if (name.includes("glass") || name.includes("vitre") || name.includes("windshield")) {
+                  child.material = new THREE.MeshPhysicalMaterial({
+                    color: 0x080f1a,
+                    transparent: true,
+                    opacity: 0.65,
+                    roughness: 0.05,
+                    metalness: 0.90,
+                    transmission: 0.45
+                  });
+                }
+              }
+            });
+          } else if (bay.type === "F1") {
+            const scale = 1.18;
+            model.scale.set(scale, scale, scale);
+            model.rotation.y = Math.PI / 2;
+            model.position.set(bay.pos.x + 0.5, bay.pos.y + 0.22 + 0.215, bay.pos.z);
+            model.traverse((child) => {
+              if (child.isMesh && child.material) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+                const name = (child.name || child.material.name || "").toLowerCase();
+                if (name.includes("orange") || name.includes("papaya") || name.includes("c_png")) {
+                  child.material = new THREE.MeshPhysicalMaterial({
+                    color: 0xff6b00,
+                    metalness: 0.65,
+                    roughness: 0.28,
+                    clearcoat: 0.9
+                  });
+                } else if (name.includes("blue") || name.includes("gulf") || name.includes("m_png")) {
+                  child.material = new THREE.MeshPhysicalMaterial({
+                    color: 0x00a3e0,
+                    metalness: 0.7,
+                    roughness: 0.25
+                  });
+                }
+              }
+            });
+          } else if (bay.type === "DODGE") {
+            model.scale.set(1.0, 1.0, 1.0);
+            model.rotation.y = Math.PI / 2;
+            model.position.set(bay.pos.x, bay.pos.y + 0.22 - 0.326, bay.pos.z);
+            model.traverse((child) => {
+              if (child.isMesh && child.material) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+                const name = (child.name || child.material.name || "").toLowerCase();
+                if (name.includes("carosserie") || name.includes("body")) {
+                  child.material = new THREE.MeshPhysicalMaterial({
+                    color: 0xa80e15,
+                    metalness: 0.82,
+                    roughness: 0.22,
+                    clearcoat: 1.0
+                  });
+                } else if (name.includes("hood") || name.includes("noir")) {
+                  child.material = new THREE.MeshStandardMaterial({
+                    color: 0x141416,
+                    roughness: 0.72,
+                    metalness: 0.2
+                  });
+                }
+              }
+            });
+          }
+          if (this.cathedralGarageGroup) {
+            this.cathedralGarageGroup.add(model);
+          } else {
+            this.scene.add(model);
+          }
+          bay.mesh = model;
+          console.log(`🏎️ Showroom authentic 3D model mounted for: ${bay.name}`);
+        });
+      } catch (err) {
+        console.warn(`Error parsing showroom model for ${bay.type}:`, err);
+      }
+    };
+    this.garageCarBays.forEach((bay) => {
+      const b64 = getCarB64(bay.type);
+      if (b64) {
+        parseAndPlaceBayModel(bay);
+      } else if (carFiles[bay.type] && typeof window.loadScriptAsync === "function") {
+        window.loadScriptAsync(carFiles[bay.type]).then(() => {
+          parseAndPlaceBayModel(bay);
+        }).catch((err) => console.warn(`Error loading script for showroom ${bay.type}:`, err));
+      }
+    });
   }
   createShowroomCarMesh(type, colorHex) {
     const carRoot = new THREE.Group();

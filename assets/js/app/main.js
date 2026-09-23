@@ -1306,7 +1306,7 @@
       for (let i = 0; i < world.garageCarBays.length; i++) {
         const bay = world.garageCarBays[i];
         const dist = Math.hypot(pX - bay.pos.x, pZ - bay.pos.z);
-        if (dist <= 5.5) {
+        if (dist <= 6.8) {
           target = {
             id: `GARAGE_${bay.type}`,
             label: `[E] / [KLIK]: INSPEKSI & KENDARAI ${bay.name.toUpperCase()}`,
@@ -1430,12 +1430,16 @@
       carModel.switchCar(carType);
     }
     if (physics) {
-      physics.x = -38.0;
-      physics.y = 32.05;
-      physics.z = 1045.0;
+      physics.x = -5.0;
+      physics.y = 32.57;
+      physics.z = 1050.0;
       physics.rotation = Math.PI;
       physics.speed = 0;
-      physics.enterVehicle();
+      physics.walkerX = -5.0;
+      physics.walkerY = 32.57;
+      physics.walkerZ = 1050.0;
+      physics.mode = "VEHICLE";
+      updateWalkBtnUI();
     }
     if (audio && audio.playChime) audio.playChime();
     const meta = (carModel && carModel.CAR_METADATA[carType]) ? carModel.CAR_METADATA[carType] : null;
@@ -1444,6 +1448,9 @@
       window.showGameToast(`🏎️ ${carName} siap meluncur! Buka gerbang katedral untuk keluar ke jalan raya.`, 4000);
     }
   }
+  window.openGarageCarInspection = openGarageCarInspection;
+  window.closeGarageInspectCard = closeGarageInspectCard;
+  window.selectAndDriveCar = selectAndDriveCar;
   function setupSidebarHub() {
     if (!UI.hubModal) return;
     if (UI.openHubBtn) {
@@ -1482,7 +1489,9 @@
     if (optGarageBtn) {
       optGarageBtn.addEventListener("click", () => {
         closeSidebarHub();
-        openGarageModal();
+        if (window.showGameToast) {
+          window.showGameToast("🏛️ Hypercar dipajang di Garasi Katedral (sayap barat). Dekati mobil & tekan [E] untuk memilih!", 4500);
+        }
       });
     }
     const optCharacterBtn = document.getElementById("opt-character-btn");

@@ -133,7 +133,6 @@
       <button id="btn-toggle-walk" class="hud-btn hud-btn-icon" title="Keluar / Masuk Mobil (F)">🚶 TURUN</button>
       <button id="btn-switch-char" class="hud-btn hud-btn-icon" title="Ganti Karakter Minato / Miyu (X)">👤 MINATO</button>
       <button id="btn-char-skill" class="hud-btn hud-btn-icon" title="Skill Karakter (E / Klik Kanan/Kiri)">⚡ HIRAISHIN</button>
-      <button id="btn-change-car" class="hud-btn hud-btn-icon" title="Ganti Hypercar / Mobil (C)" style="display: none !important;">🏎️ MOBIL</button>
       <button id="btn-inspect" class="hud-btn hud-btn-icon" title="Mode Inspeksi 3D RPG (I)">🔍 INSPEKSI</button>
       <button id="btn-lang" class="hud-btn hud-btn-icon" title="Ganti Bahasa (L)">🇮🇩 ID</button>
       <button id="btn-camera-view" class="hud-btn hud-btn-icon" title="Ganti Mode Kamera (V)">📷 CHASE</button>
@@ -160,10 +159,6 @@
           <div class="hub-option-row">
             <span class="hub-option-label" id="lbl-opt-audio">Audio</span>
             <button id="opt-audio-toggle" class="hub-option-btn">🔊</button>
-          </div>
-          <div class="hub-option-row">
-            <span class="hub-option-label" id="lbl-opt-garage">Garasi Hypercar</span>
-            <button id="opt-garage-btn" class="hub-option-btn">Pilih Mobil 🏎️</button>
           </div>
           <div class="hub-option-row">
             <span class="hub-option-label" id="lbl-opt-character">Pilihan Karakter</span>
@@ -609,7 +604,7 @@
       <span>⚡ Klik pada checkpoint manapun untuk meluncur ke lokasi</span>
     </div>
   </div>
-  <div id="garage-modal" class="garage-modal" role="dialog" aria-modal="true" aria-labelledby="garage-title">
+  <div id="garage-modal" class="garage-modal" role="dialog" aria-modal="true" aria-labelledby="garage-title" style="display: none !important; pointer-events: none !important;">
     <div class="garage-card">
       <div class="garage-header">
         <div class="garage-title-wrap">

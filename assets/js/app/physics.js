@@ -52,10 +52,9 @@ class VehiclePhysicsEngine {
   setupCathedralColliders() {
     this.addStaticCollider(-38.0, -7.2, 1028.5, 1031.5, 55.0, "cathedral_wall_left", 31.5);
     this.addStaticCollider(7.2, 38.0, 1028.5, 1031.5, 55.0, "cathedral_wall_right", 31.5);
-    this.addStaticCollider(-20.0, -17.5, 1031.0, 1064.0, 55.0, "cathedral_nave_left_1", 31.5);
-    this.addStaticCollider(-20.0, -17.5, 1076.0, 1118.0, 55.0, "cathedral_nave_left_2", 31.5);
-    this.addStaticCollider(17.5, 20.0, 1031.0, 1118.0, 55.0, "cathedral_nave_right", 31.5);
-    this.addStaticCollider(-20.0, 20.0, 1116.0, 1120.0, 55.0, "cathedral_nave_back", 31.5);
+    this.addStaticCollider(-40.0, -37.2, 1031.0, 1118.0, 55.0, "cathedral_outer_wall_west", 31.5);
+    this.addStaticCollider(37.2, 40.0, 1031.0, 1118.0, 55.0, "cathedral_outer_wall_east", 31.5);
+    this.addStaticCollider(-38.0, 38.0, 1116.0, 1120.0, 55.0, "cathedral_outer_wall_back", 31.5);
     this.updateCathedralGateCollider(false);
   }
   updateCathedralGateCollider(isOpen) {
