@@ -1814,9 +1814,9 @@ class TokyoCityWorld {
       (gltf) => {
         const cathedral = gltf.scene;
         cathedral.name = "cathedral";
-        const scale = 0.08;
+        const scale = 2.4;
         cathedral.scale.set(scale, scale, scale);
-        cathedral.position.set(0, 61.43, 1050);
+        cathedral.position.set(0, 80.58, 1075);
         cathedral.traverse((child) => {
           if (child.isMesh) {
             child.castShadow = true;
