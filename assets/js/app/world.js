@@ -388,20 +388,25 @@ class TokyoCityWorld {
       metalness: 0.55
     });
     const boxGeo = new THREE.BoxGeometry(1, 1, 1);
-    const count = 48;
+    const count = 108;
     const instancedMesh = new THREE.InstancedMesh(boxGeo, skylineMat, count);
     instancedMesh.receiveShadow = true;
     const dummy = new THREE.Object3D();
     let placed = 0;
-    for (let i = 0; i < count * 4 && placed < count; i++) {
-      const angle = (placed / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.3;
-      const dist = 380 + Math.random() * 220;
+    for (let i = 0; i < count * 6 && placed < count; i++) {
+      const angle = (placed / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.28;
+      const isUrban = (placed % 2 === 0);
+      const dist = isUrban
+        ? (92 + Math.random() * 200)
+        : (310 + Math.random() * 330);
       const bx = Math.cos(angle) * dist;
       const bz = Math.sin(angle) * dist;
       if (!isLocationClear(bx, bz)) continue;
-      const bW = 28 + Math.random() * 24;
-      const bD = 28 + Math.random() * 24;
-      const bH = 75 + Math.random() * 120;
+      const bW = isUrban ? (22 + Math.random() * 22) : (32 + Math.random() * 28);
+      const bD = isUrban ? (22 + Math.random() * 22) : (32 + Math.random() * 28);
+      const bH = isUrban
+        ? (48 + Math.random() * 85)
+        : (85 + Math.random() * 155);
       dummy.position.set(bx, bH / 2, bz);
       dummy.scale.set(bW, bH, bD);
       dummy.updateMatrix();

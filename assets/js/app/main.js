@@ -2310,28 +2310,35 @@
     });
   }
   function streamBackgroundWorldChunks() {
-    const scheduleIdle = window.requestIdleCallback || ((cb) => setTimeout(cb, 1200));
-    scheduleIdle(() => {
-      if (typeof window.loadScriptAsync !== "function") return;
-      window.loadScriptAsync("assets/js/data/city/tokyo_tower_data.js").then(() => {
+    if (typeof window.loadScriptAsync !== "function") return;
+    setTimeout(() => {
+      window.loadScriptAsync("assets/js/data/environment/tokyo_tower_data.js").then(() => {
         if (world && typeof world.createTokyoTowerModel === "function") {
           world.createTokyoTowerModel();
         }
-        return window.loadScriptAsync("assets/js/data/city/ccity_building_data.js");
-      }).then(() => {
-        if (world && typeof world.createRealCityBuildings === "function") {
-          world.createRealCityBuildings();
-        }
-        return window.loadScriptAsync("assets/js/data/city/tokyo_city_model_data.js");
-      }).then(() => {
-        if (world && typeof world.createTokyoCityBlocksModel === "function") {
-          world.createTokyoCityBlocksModel();
-        }
-        console.log("Tokyo City background chunks streamed successfully without latency!");
       }).catch(err => {
-        console.warn("Background world chunk streaming error:", err);
+        console.warn("Background Tokyo Tower stream error:", err);
       });
-    });
+      setTimeout(() => {
+        window.loadScriptAsync("assets/js/data/environment/ccity_building_data.js").then(() => {
+          if (world && typeof world.createRealCityBuildings === "function") {
+            world.createRealCityBuildings();
+          }
+        }).catch(err => {
+          console.warn("Background CCity stream error:", err);
+        });
+      }, 300);
+      setTimeout(() => {
+        window.loadScriptAsync("assets/js/data/environment/tokyo_city_model_data.js").then(() => {
+          if (world && typeof world.createTokyoCityBlocksModel === "function") {
+            world.createTokyoCityBlocksModel();
+          }
+          console.log("All Tokyo City background chunks streamed and rendered successfully!");
+        }).catch(err => {
+          console.warn("Background Tokyo City blocks stream error:", err);
+        });
+      }, 600);
+    }, 200);
   }
   function saveCheckpointState() {
     if (!physics) return;
