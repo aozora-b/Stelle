@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Stelle — 3D Interactive Portfolio // Tokyo Shuto Expressway</title>
+  <meta name="description" content="Portfolio interaktif 3D karya Stelle — Full-Stack Developer & UI/UX Designer. Jelajahi 1200m jaringan jalan tol Tokyo Shuto Expressway, temukan proyek mobile Flutter, automasi Python, dan web 3D. Dilengkapi efek cuaca dinamis dan GPS radar interaktif.">
+  <meta name="keywords" content="Stelle, 3D Portfolio, Three.js, Tokyo Expressway, Bruno Simon style, Tim Roussilhe, Creative Developer, Flutter, Python, Selenium">
+  <meta property="og:title" content="Stelle — 3D Interactive Portfolio">
+  <meta property="og:description" content="Explore projects in a massive 1200m Tokyo Shuto Expressway world with dynamic weather and real-time GPS radar.">
+  <meta property="og:type" content="website">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+</head>
+<body>
+  <main id="webgl-container" role="main" title="Klik & Geser mouse untuk memutar kamera 3D"></main>
+  <header class="top-hud">
+    <div class="brand-badge">
+      <a href="#" class="brand-logo">STELLE<span>.3D</span></a>
+    </div>
+    <div class="top-actions">
+      <button id="btn-toggle-walk" class="hud-btn hud-btn-icon" title="Keluar / Masuk Mobil (F)">🚶 TURUN</button>
+      <button id="btn-switch-char" class="hud-btn hud-btn-icon" title="Ganti Karakter Minato / Miyu (X)">👤 MINATO</button>
+      <button id="btn-char-skill" class="hud-btn hud-btn-icon" title="Skill Karakter (E / Klik Kanan/Kiri)">⚡ HIRAISHIN</button>
+      <button id="btn-change-car" class="hud-btn hud-btn-icon" title="Ganti Hypercar / Mobil (C)">🏎️ MOBIL</button>
+      <button id="btn-inspect" class="hud-btn hud-btn-icon" title="Mode Inspeksi 3D RPG (I)">🔍 INSPEKSI</button>
+      <button id="btn-lang" class="hud-btn hud-btn-icon" title="Ganti Bahasa (L)">🇮🇩 ID</button>
+      <button id="btn-camera-view" class="hud-btn hud-btn-icon" title="Ganti Mode Kamera (V)">📷 CHASE</button>
+      <button id="btn-open-map" class="hud-btn hud-btn-icon" title="Buka Peta GPS Penuh (M)">🗺️ PETA</button>
+      <button id="btn-open-hub" class="hud-btn hud-btn-hub" title="Buka Menu & Panduan (☰)">
+        <span class="hub-btn-icon-bar">☰</span>
+        <span class="hub-btn-text">MENU</span>
+      </button>
+    </div>
+  </header>
+  <aside id="sidebar-hub-modal" class="sidebar-hub-modal" role="dialog" aria-modal="true" aria-label="Menu dan Pengaturan">
+    <div class="hub-tab-bar">
+      <button class="hub-tab-btn active" data-tab="options" title="Opsi / Settings">⚙️</button>
+      <button class="hub-tab-btn" data-tab="controls" title="Panduan Kontrol / Controls">🎮</button>
+      <button class="hub-tab-btn" data-tab="projects" title="Karya & Proyek / Projects">🎖️</button>
+      <button class="hub-tab-btn" data-tab="weather" title="Suasana Cuaca / Weather">✨</button>
+      <button class="hub-tab-btn" data-tab="about" title="Tentang / About">❓</button>
+      <button id="btn-close-hub" class="hub-tab-btn hub-tab-close" title="Tutup Menu (ESC)">✕</button>
+    </div>
+    <div class="hub-content-container">
+      <section id="tab-options" class="hub-tab-panel active">
+        <h2 class="hub-panel-title">Opsi</h2>
+        <div class="hub-options-list">
+          <div class="hub-option-row">
+            <span class="hub-option-label" id="lbl-opt-audio">Audio</span>
+            <button id="opt-audio-toggle" class="hub-option-btn">🔊</button>
+          </div>
+          <div class="hub-option-row">
+            <span class="hub-option-label" id="lbl-opt-quality">Kualitas</span>
+            <button id="opt-quality-toggle" class="hub-option-btn">Tinggi</button>
+          </div>
+          <div class="hub-option-row">
+            <span class="hub-option-label" id="lbl-opt-camera">Mode Kamera</span>
+            <button id="opt-camera-toggle" class="hub-option-btn">Chase (3rd)</button>
+          </div>
+          <div class="hub-option-row">
+            <span class="hub-option-label" id="lbl-opt-unstuck">Saya buntu!</span>
+            <button id="opt-unstuck-btn" class="hub-option-btn">Muncul kembali</button>
+          </div>
+          <div class="hub-option-row">
+            <span class="hub-option-label" id="lbl-opt-reset">Mengatur ulang</span>
+            <button id="opt-reset-btn" class="hub-option-btn">Mengatur ulang</button>
+          </div>
+          <div class="hub-option-row">
+            <span class="hub-option-label" id="lbl-opt-mode">Mode Kemudi</span>
+            <button id="opt-mode-toggle" class="hub-option-btn">🎮 Manual</button>
+          </div>
+          <div class="hub-option-row">
+            <span class="hub-option-label" id="lbl-opt-renderer">Perender</span>
+            <span class="hub-option-badge">WebGL 3D</span>
+          </div>
+          <div class="hub-option-row">
+            <span class="hub-option-label" id="lbl-opt-server">Server</span>
+            <span class="hub-option-badge hub-badge-online">On line</span>
+          </div>
+        </div>
+      </section>
+      <section id="tab-controls" class="hub-tab-panel">
+        <h2 class="hub-panel-title">Panduan Kontrol</h2>
+        <p class="hub-panel-desc">Kendalikan mobil sport GT Anda menjelajahi 1200m jaringan jalan raya Tokyo.</p>
+        <div class="hub-controls-stack">
+          <div class="hub-control-card">
+            <div class="hub-control-keys">
+              <kbd class="hub-kbd">W</kbd>
+              <div class="hub-key-trio">
+                <kbd class="hub-kbd">A</kbd>
+                <kbd class="hub-kbd">S</kbd>
+                <kbd class="hub-kbd">D</kbd>
+              </div>
+            </div>
+            <div class="hub-control-details">
+              <strong>KEMUDI MOBIL</strong>
+              <span>W: Gas / Akselerasi &bull; S: Rem / Mundur &bull; A / D: Belok</span>
+            </div>
+          </div>
+          <div class="hub-control-card">
+            <div class="hub-control-keys">
+              <kbd class="hub-kbd hub-kbd-wide">SPASI</kbd>
+            </div>
+            <div class="hub-control-details">
+              <strong>REM TANGAN & DRIFT</strong>
+              <span>Tekan saat berbelok kencang untuk meluncurkan drift ban belakang</span>
+            </div>
+          </div>
+          <div class="hub-control-card">
+            <div class="hub-control-keys">
+              <kbd class="hub-kbd">V</kbd>
+            </div>
+            <div class="hub-control-details">
+              <strong>SUDUT PANDANG KAMERA</strong>
+              <span>Ganti antara Chase (3rd Person), FPV Hood (Kap Mesin), dan Top-Down Arcade</span>
+            </div>
+          </div>
+          <div class="hub-control-card">
+            <div class="hub-control-keys">
+              <kbd class="hub-kbd">M</kbd>
+            </div>
+            <div class="hub-control-details">
+              <strong>PETA GPS TAKTIS</strong>
+              <span>Buka peta interaktif lengkap yang dapat digeser dan diperbesar</span>
+            </div>
+          </div>
+          <div class="hub-control-card">
+            <div class="hub-control-keys">
+              <kbd class="hub-kbd">C</kbd>
+            </div>
+            <div class="hub-control-details">
+              <strong>SUASANA CUACA</strong>
+              <span>Ganti antara Musim Semi Sakura, Senja Emas, Hujan, dan Malam</span>
+            </div>
+          </div>
+          <div class="hub-control-card">
+            <div class="hub-control-keys">
+              <kbd class="hub-kbd">H</kbd>
+            </div>
+            <div class="hub-control-details">
+              <strong>KLAKSON MOBIL</strong>
+              <span>Bunyikan klakson mobil sport GT</span>
+            </div>
+          </div>
+          <div class="hub-control-card">
+            <div class="hub-control-keys">
+              <kbd class="hub-kbd">F</kbd>
+            </div>
+            <div class="hub-control-details">
+              <strong>JALAN KAKI / KEMUDI MOBIL</strong>
+              <span>Keluar atau masuk mobil saat berada di dekat Jalan Layang Transmisi (z = 475)</span>
+            </div>
+          </div>
+          <div class="hub-control-card">
+            <div class="hub-control-keys">
+              <kbd class="hub-kbd hub-kbd-wide">SHIFT</kbd>
+            </div>
+            <div class="hub-control-details">
+              <strong>LARI KENCANG (SPRINT)</strong>
+              <span>Tahan Shift atau Spasi saat jalan kaki untuk lari cepat hingga 14.5 m/s dengan animasi anime</span>
+            </div>
+          </div>
+          <div class="hub-control-card">
+            <div class="hub-control-keys">
+              <kbd class="hub-kbd">X</kbd>
+            </div>
+            <div class="hub-control-details">
+              <strong>GANTI KARAKTER HERO</strong>
+              <span>Beralih antara Minato Namikaze (Hokage Keempat) dan Kasumizawa Miyu (Blue Archive SRT)</span>
+            </div>
+          </div>
+          <div class="hub-control-card">
+            <div class="hub-control-keys">
+              <kbd class="hub-kbd">E</kbd>
+              <span class="hub-icon-pill">/ Klik</span>
+            </div>
+            <div class="hub-control-details">
+              <strong>SKILL HERO / TEMBAK</strong>
+              <span>Minato: Teleportasi Kilat Kunai Hiraishin &bull; Miyu: Tembakan Sniper Rifle Mosin-Nagant</span>
+            </div>
+          </div>
+          <div class="hub-control-card">
+            <div class="hub-control-keys">
+              <kbd class="hub-kbd">Q</kbd>
+              <span class="hub-icon-pill">/ RMB</span>
+            </div>
+            <div class="hub-control-details">
+              <strong>MODE BIDIK SNIPER (MIYU)</strong>
+              <span>Bidik taktis dengan crosshair RPG dan sudut kamera over-the-shoulder</span>
+            </div>
+          </div>
+          <div class="hub-control-card">
+            <div class="hub-control-keys">
+              <kbd class="hub-kbd">I</kbd>
+            </div>
+            <div class="hub-control-details">
+              <strong>STUDIO INSPEKSI 3D RPG</strong>
+              <span>Buka studio inspeksi mendalam: orbit 360°, preset Full Body / Wajah / Senjata, & stat lore</span>
+            </div>
+          </div>
+          <div class="hub-control-card">
+            <div class="hub-control-keys">
+              <span class="hub-icon-pill">🖱️ Drag</span>
+            </div>
+            <div class="hub-control-details">
+              <strong>PUTAR KAMERA BEBAS</strong>
+              <span>Klik dan geser layar 3D untuk melihat panorama kota secara 360°</span>
+            </div>
+          </div>
+          <div class="hub-control-card">
+            <div class="hub-control-keys">
+              <span class="hub-icon-pill">🖱️ Scroll</span>
+            </div>
+            <div class="hub-control-details">
+              <strong>ZOOM KAMERA RPG</strong>
+              <span>Putar roda mouse untuk zoom in melihat detail model 3D atau zoom out pemandangan luas</span>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section id="tab-projects" class="hub-tab-panel">
+        <h2 class="hub-panel-title">Karya & Proyek</h2>
+        <div id="hub-projects-list" class="hub-projects-list"></div>
+      </section>
+      <section id="tab-weather" class="hub-tab-panel">
+        <h2 class="hub-panel-title">Suasana & Cuaca</h2>
+        <div class="hub-weather-grid">
+          <button class="hub-weather-item active" data-weather="SPRING_DAY">
+            <span class="hub-weather-icon">🌸</span>
+            <div class="hub-weather-text">
+              <strong>Spring Day</strong>
+              <span>Langit biru cerah, sakura mekar & teluk toska</span>
+            </div>
+          </button>
+          <button class="hub-weather-item" data-weather="GOLDEN_SUNSET">
+            <span class="hub-weather-icon">🌇</span>
+            <div class="hub-weather-text">
+              <strong>Golden Sunset</strong>
+              <span>Senja Shinkai keemasan & cahaya lampu kota</span>
+            </div>
+          </button>
+          <button class="hub-weather-item" data-weather="SUMMER_RAIN">
+            <span class="hub-weather-icon">🌧️</span>
+            <div class="hub-weather-text">
+              <strong>Summer Rain</strong>
+              <span>Hujan sejuk dengan aspal basah reflektif</span>
+            </div>
+          </button>
+          <button class="hub-weather-item" data-weather="TOKYO_NIGHT">
+            <span class="hub-weather-icon">🌙</span>
+            <div class="hub-weather-text">
+              <strong>Tokyo Night</strong>
+              <span>Metropolis malam dengan sorot lampu jalan neon</span>
+            </div>
+          </button>
+        </div>
+      </section>
+      <section id="tab-about" class="hub-tab-panel">
+        <h2 class="hub-panel-title">Tentang Developer</h2>
+        <div class="hub-about-card">
+          <p class="hub-about-bio">
+            Halo! Saya <strong>Stelle</strong>, Full-Stack Developer & UI/UX Designer dari Indonesia. Berfokus pada perancangan software berkualitas tinggi dengan Clean Code, arsitektur modular, dan grafis interaktif web 3D.
+          </p>
+          <div class="hub-about-meta">
+            <div class="hub-meta-item">
+              <span class="hub-meta-lbl">Keahlian</span>
+              <span class="hub-meta-val">Flutter, Dart, Python, Selenium, Three.js, Clean Code</span>
+            </div>
+            <div class="hub-meta-item">
+              <span class="hub-meta-lbl">Domisili</span>
+              <span class="hub-meta-val">Indonesia 🇮🇩 (Open for Remote / Freelance)</span>
+            </div>
+          </div>
+          <a href="mailto:hello@stelle.dev" class="hub-contact-action">Kirim Email (hello@stelle.dev) →</a>
+        </div>
+      </section>
+    </div>
+  </aside>
+  <section class="radar-hud-card" aria-label="GPS Radar Minimap">
+    <div class="radar-header-row">
+      <span class="radar-title">GPS RADAR</span>
+      <button id="btn-radar-mode" class="radar-action-btn" title="Ganti Mode Arah Radar (Heading-Up vs North-Up)">🧭 HEADING-UP</button>
+    </div>
+    <canvas id="minimap-canvas" width="190" height="190" title="Klik radar untuk membuka Peta Penuh"></canvas>
+    <div id="radar-target-info" class="radar-target-readout">● SCANNING WAYPOINTS...</div>
+  </section>
+  <div id="checkpoint-pill" class="checkpoint-pill" role="alert">
+    <div class="pill-info">
+      <div class="pill-meta-row">
+        <span class="pill-dot"></span>
+        <span id="pill-district" class="pill-district">SECTOR</span>
+      </div>
+      <div id="pill-title" class="pill-title">Project Title</div>
+    </div>
+    <button id="pill-open-btn" class="pill-open-btn">Buka Detail (ENTER) →</button>
+    <button id="pill-close-btn" class="pill-close-btn" aria-label="Tutup Notifikasi">✕</button>
+  </div>
+  <button id="walk-prompt" class="walk-prompt" aria-label="Aksi Pejalan Kaki">
+    <span class="walk-prompt-icon">🚶</span>
+    <span id="walk-prompt-text">KELUAR DARI MOBIL & JALAN KAKI (Tekan F)</span>
+  </button>
+  <div id="celestial-gate-modal" class="celestial-gate-modal" role="dialog" aria-modal="true" aria-labelledby="gate-title">
+    <div class="celestial-gate-card">
+      <button id="gate-close-btn" class="gate-close-btn" aria-label="Tutup Pintu Cahaya">✕</button>
+      <div class="gate-header">
+        <span class="gate-badge">✦ PINTU CAHAYA // CELESTIAL GATEWAY ✦</span>
+        <h2 id="gate-title" class="gate-title">KUNCI GERBANG LANGIT</h2>
+        <p class="gate-desc">Jawab 3 pertanyaan kata sandi untuk membuka rahasia dan menerbangkan gambar ke langit.</p>
+      </div>
+      <div class="gate-steps">
+        <div class="gate-step active" id="gate-step-1">
+          <span class="step-num">1</span>
+          <span class="step-lbl">Admin Suki</span>
+        </div>
+        <div class="gate-step" id="gate-step-2">
+          <span class="step-num">2</span>
+          <span class="step-lbl">Member Suki</span>
+        </div>
+        <div class="gate-step" id="gate-step-3">
+          <span class="step-num">3</span>
+          <span class="step-lbl">Orang Normal</span>
+        </div>
+      </div>
+      <div class="gate-quiz-box" id="gate-quiz-box">
+        <div class="gate-question-tag" id="gate-q-tag">PERTANYAAN 1 DARI 3</div>
+        <div class="gate-question-text" id="gate-q-text">siapa admin suki?</div>
+        <form id="gate-form" class="gate-form" onsubmit="return false;">
+          <div class="gate-input-wrap">
+            <input type="text" id="gate-input" class="gate-input" placeholder="Ketik kata kunci di sini..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+            <button type="submit" id="gate-submit-btn" class="gate-submit-btn">BUKA KUNCI ✦</button>
+          </div>
+          <div id="gate-feedback" class="gate-feedback"></div>
+        </form>
+      </div>
+      <div id="gate-reveal-card" class="gate-reveal-card">
+        <div class="gate-reveal-title">✦ GAMBAR DITEMUKAN & MELAYANG KE LANGIT! ✦</div>
+        <div class="gate-image-frame">
+          <img id="gate-reveal-img" src="" alt="Encrypted Celestial Asset" style="display: none;">
+          <div id="gate-reveal-placeholder" class="gate-locked-placeholder" style="padding: 40px 20px; text-align: center; color: #f5a623;">
+            <div style="font-size: 2.8rem; margin-bottom: 8px;">🔒</div>
+            <div style="font-weight: bold; letter-spacing: 2px;">ENCRYPTED CELESTIAL VAULT</div>
+            <div style="font-size: 0.85rem; color: #94a3b8; margin-top: 6px;">Pecahkan teka-teki untuk mendekripsi dan menampilkan gambar</div>
+          </div>
+        </div>
+        <div id="gate-reveal-caption" class="gate-reveal-caption">Identity: MORGAN // Role: ADMIN SUKI</div>
+        <div class="gate-reveal-actions">
+          <button id="gate-view-sky-btn" class="gate-view-sky-btn" title="Kamera Melacak Gambar ke Langit">👀 LIHAT GAMBAR DI LANGIT</button>
+          <button id="gate-next-btn" class="gate-next-btn">PERTANYAAN BERIKUTNYA →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="respawn-toast" class="respawn-toast" role="status">↺ JATUH KE AIR! KEMBALI KE TITIK AWAL</div>
+  <div id="tactical-map-modal" class="tactical-map-modal" role="dialog" aria-modal="true" aria-label="Tactical Tokyo Map">
+    <div class="tactical-map-header">
+      <div class="tactical-map-title"><span>TACTICAL GPS RADAR</span></div>
+      <div class="tactical-map-controls">
+        <button id="btn-map-zoom-in" class="map-tool-btn" title="Perbesar Peta">➕ ZOOM IN</button>
+        <button id="btn-map-zoom-out" class="map-tool-btn" title="Perkecil Peta">➖ ZOOM OUT</button>
+        <button id="btn-map-reset-pan" class="map-tool-btn" title="Pusatkan Peta">🎯 CENTER</button>
+        <button id="btn-close-fullmap" class="map-tool-btn" style="background: rgba(255, 51, 102, 0.2); border-color: #ff3366;" title="Tutup Peta (ESC)">✕ CLOSE</button>
+      </div>
+    </div>
+    <div class="tactical-canvas-wrap">
+      <canvas id="fullmap-canvas"></canvas>
+    </div>
+    <div class="tactical-map-footer-hint">
+      <span>💡 Klik dan geser (drag) untuk menjelajahi peta &bull; Putar scroll mouse untuk zoom</span>
+      <span>⚡ Klik pada checkpoint manapun untuk meluncur ke lokasi</span>
+    </div>
+  </div>
+  <div id="garage-modal" class="garage-modal" role="dialog" aria-modal="true" aria-labelledby="garage-title">
+    <div class="garage-card">
+      <div class="garage-header">
+        <div class="garage-title-wrap">
+          <span class="garage-badge">🏎️ SHOWROOM HYPERCAR // PILIHAN MOBIL 🏎️</span>
+          <h2 id="garage-title" class="garage-title">GARASI KENDARAAN STELLE</h2>
+          <p class="garage-subtitle">Pilih hypercar performa tinggi untuk menjelajahi Tokyo Expressway & Celestial Skyway. Setiap mobil memiliki karakteristik fisika, kecepatan, dan handling yang unik.</p>
+        </div>
+        <button id="garage-close-btn" class="garage-close-btn" aria-label="Tutup Garasi">✕</button>
+      </div>
+      <div class="garage-grid" id="garage-cards-grid">
+        <div class="garage-vehicle-card active" data-car="LAMBORGHINI">
+          <div class="vehicle-card-badge">V12 NATURALLY ASPIRATED</div>
+          <div class="vehicle-card-header">
+            <h3 class="vehicle-name">Lamborghini Centenario</h3>
+            <span class="vehicle-model">LP-770 // CARBON EDITION</span>
+          </div>
+          <p class="vehicle-engine">6.5L NA V12 &bull; 770 HP &bull; 690 Nm &bull; 8,600 RPM</p>
+          <div class="vehicle-features">
+            <span class="v-tag">Pintu Gunting (Scissor Doors)</span>
+            <span class="v-tag">Carbon Monocoque</span>
+            <span class="v-tag">Aero Diffuser</span>
+            <span class="v-tag">Cockpit Interior</span>
+          </div>
+          <div class="vehicle-stats">
+            <div class="v-stat-row">
+              <span class="v-stat-label">Kecepatan Maksimal</span>
+              <div class="v-stat-bar-bg"><div class="v-stat-bar-fill" style="width: 92%;"></div></div>
+              <span class="v-stat-val">350 km/h</span>
+            </div>
+            <div class="v-stat-row">
+              <span class="v-stat-label">Akselerasi (0-100)</span>
+              <div class="v-stat-bar-bg"><div class="v-stat-bar-fill" style="width: 94%;"></div></div>
+              <span class="v-stat-val">2.8s</span>
+            </div>
+            <div class="v-stat-row">
+              <span class="v-stat-label">Handling & Grip</span>
+              <div class="v-stat-bar-bg"><div class="v-stat-bar-fill" style="width: 95%;"></div></div>
+              <span class="v-stat-val">95%</span>
+            </div>
+          </div>
+          <button class="garage-select-btn" data-car="LAMBORGHINI">✓ SEDANG DIGUNAKAN</button>
+        </div>
+        <div class="garage-vehicle-card" data-car="BUGATTI">
+          <div class="vehicle-card-badge">QUAD-TURBO HYPERCAR</div>
+          <div class="vehicle-card-header">
+            <h3 class="vehicle-name">Bugatti Chiron</h3>
+            <span class="vehicle-model">W16 // FRENCH RACING BLUE</span>
+          </div>
+          <p class="vehicle-engine">8.0L W16 Quad-Turbo &bull; 1,500 HP &bull; 1,600 Nm</p>
+          <div class="vehicle-features">
+            <span class="v-tag">Active Airbrake Spoiler</span>
+            <span class="v-tag">French Racing Blue</span>
+            <span class="v-tag">Quad Exhaust</span>
+            <span class="v-tag">Monster Top Speed</span>
+          </div>
+          <div class="vehicle-stats">
+            <div class="v-stat-row">
+              <span class="v-stat-label">Kecepatan Maksimal</span>
+              <div class="v-stat-bar-bg"><div class="v-stat-bar-fill" style="width: 99%;"></div></div>
+              <span class="v-stat-val">420 km/h</span>
+            </div>
+            <div class="v-stat-row">
+              <span class="v-stat-label">Akselerasi (0-100)</span>
+              <div class="v-stat-bar-bg"><div class="v-stat-bar-fill" style="width: 98%;"></div></div>
+              <span class="v-stat-val">2.4s</span>
+            </div>
+            <div class="v-stat-row">
+              <span class="v-stat-label">Handling & Grip</span>
+              <div class="v-stat-bar-bg"><div class="v-stat-bar-fill" style="width: 88%;"></div></div>
+              <span class="v-stat-val">88%</span>
+            </div>
+          </div>
+          <button class="garage-select-btn" data-car="BUGATTI">PILIH MOBIL INI</button>
+        </div>
+        <div class="garage-vehicle-card" data-car="F1">
+          <div class="vehicle-card-badge">FORMULA 1 RACER</div>
+          <div class="vehicle-card-header">
+            <h3 class="vehicle-name">McLaren MCL35M F1</h3>
+            <span class="vehicle-model">V6 TURBO HYBRID // PAPAYA</span>
+          </div>
+          <p class="vehicle-engine">1.6L Turbo Hybrid V6 &bull; 1,000+ HP &bull; 15,000 RPM</p>
+          <div class="vehicle-features">
+            <span class="v-tag">F1 DRS Aerodynamics</span>
+            <span class="v-tag">Halo Safety Cockpit</span>
+            <span class="v-tag">752 kg Ultra-Light</span>
+            <span class="v-tag">Extreme Cornering Grip</span>
+          </div>
+          <div class="vehicle-stats">
+            <div class="v-stat-row">
+              <span class="v-stat-label">Kecepatan Maksimal</span>
+              <div class="v-stat-bar-bg"><div class="v-stat-bar-fill" style="width: 95%;"></div></div>
+              <span class="v-stat-val">360 km/h</span>
+            </div>
+            <div class="v-stat-row">
+              <span class="v-stat-label">Akselerasi (0-100)</span>
+              <div class="v-stat-bar-bg"><div class="v-stat-bar-fill" style="width: 100%;"></div></div>
+              <span class="v-stat-val">2.1s</span>
+            </div>
+            <div class="v-stat-row">
+              <span class="v-stat-label">Handling & Grip</span>
+              <div class="v-stat-bar-bg"><div class="v-stat-bar-fill" style="width: 100%;"></div></div>
+              <span class="v-stat-val">99%</span>
+            </div>
+          </div>
+          <button class="garage-select-btn" data-car="F1">PILIH MOBIL INI</button>
+        </div>
+        <div class="garage-vehicle-card" data-car="DODGE">
+          <div class="vehicle-card-badge">AMERICAN MUSCLE V8</div>
+          <div class="vehicle-card-header">
+            <h3 class="vehicle-name">Dodge Challenger Hellcat</h3>
+            <span class="vehicle-model">SRT 6.2L // TORRED RED</span>
+          </div>
+          <p class="vehicle-engine">6.2L Supercharged HEMI V8 &bull; 717 HP &bull; 881 Nm</p>
+          <div class="vehicle-features">
+            <span class="v-tag">Supercharger Whine</span>
+            <span class="v-tag">Widebody Muscle Kit</span>
+            <span class="v-tag">Drift Torque Machine</span>
+            <span class="v-tag">Dual Hood Scoops</span>
+          </div>
+          <div class="vehicle-stats">
+            <div class="v-stat-row">
+              <span class="v-stat-label">Kecepatan Maksimal</span>
+              <div class="v-stat-bar-bg"><div class="v-stat-bar-fill" style="width: 86%;"></div></div>
+              <span class="v-stat-val">320 km/h</span>
+            </div>
+            <div class="v-stat-row">
+              <span class="v-stat-label">Akselerasi (0-100)</span>
+              <div class="v-stat-bar-bg"><div class="v-stat-bar-fill" style="width: 88%;"></div></div>
+              <span class="v-stat-val">3.4s</span>
+            </div>
+            <div class="v-stat-row">
+              <span class="v-stat-label">Handling & Grip</span>
+              <div class="v-stat-bar-bg"><div class="v-stat-bar-fill" style="width: 82%;"></div></div>
+              <span class="v-stat-val">82% (Drift King)</span>
+            </div>
+          </div>
+          <button class="garage-select-btn" data-car="DODGE">PILIH MOBIL INI</button>
+        </div>
+      </div>
+      <div class="garage-footer">
+        <div class="garage-hint">
+          <span>💡 Tekan tombol <strong>🏎️ MOBIL</strong> atau tombol keyboard <strong>C</strong> kapan saja untuk membuka Showroom &bull; Tekan <strong>F</strong> untuk keluar/masuk mobil</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="rpg-inspect-modal" class="rpg-inspect-modal" role="dialog" aria-modal="true" aria-label="Mode Inspeksi 3D RPG">
+    <div class="inspect-container">
+      <div class="inspect-top-bar">
+        <div class="inspect-title-wrap">
+          <span class="inspect-badge">🔍 MODE INSPEKSI 3D RPG // HIGH-FIDELITY VIEWER</span>
+          <h2 id="inspect-title" class="inspect-title">PENGAMATAN MODEL DETAIL</h2>
+        </div>
+        <div class="inspect-nav-tabs">
+          <button id="inspect-tab-char" class="inspect-tab-btn active">👤 KARAKTER</button>
+          <button id="inspect-tab-car" class="inspect-tab-btn">🏎️ KENDARAAN</button>
+        </div>
+        <button id="inspect-close-btn" class="inspect-close-btn" title="Kembali ke Permainan (ESC)">✕ KEMBALI</button>
+      </div>
+      <div class="inspect-body">
+        <div class="inspect-canvas-frame">
+          <div id="inspect-canvas-mount"></div>
+          <div class="inspect-presets-bar">
+            <span class="preset-label">FOKUS KAMERA:</span>
+            <button id="preset-body" class="inspect-preset-btn active">🧍 SELURUH TUBUH</button>
+            <button id="preset-face" class="inspect-preset-btn">👤 WAJAH / KEPALA</button>
+            <button id="preset-weapon" class="inspect-preset-btn">🎯 SENJATA / DETAIL</button>
+            <button id="preset-reset" class="inspect-preset-btn">🔄 RESET SUDUT</button>
+          </div>
+          <div class="inspect-hud-controls">
+            <span>🖱️ <strong>Klik & Geser</strong>: Putar Model 360° &bull; 📜 <strong>Scroll Mouse</strong>: Zoom Mendalam &bull; 🖱️ <strong>Klik Kanan</strong>: Geser / Pan</span>
+          </div>
+        </div>
+        <aside class="inspect-card" id="inspect-lore-card">
+          <div class="inspect-card-header">
+            <span id="inspect-card-badge" class="inspect-card-badge">SRT SPECIAL ACADEMY</span>
+            <h3 id="inspect-card-name" class="inspect-card-name">Kasumizawa Miyu</h3>
+            <span id="inspect-card-role" class="inspect-card-role">Sniper &bull; RABBIT Squad 4</span>
+          </div>
+          <div class="inspect-lore-body">
+            <p id="inspect-card-desc" class="inspect-card-desc">
+              Siswi Akademi Khusus SRT divisi RABBIT Squad. Dikenal ahli dalam kamuflase taktis, observasi senyap, dan tembakan jitu jarak jauh menggunakan senapan Mosin-Nagant berperedam khusus.
+            </p>
+            <div class="inspect-stats-group">
+              <h4 class="inspect-stats-title">STATISTIK PERFORMA RPG</h4>
+              <div class="inspect-stat-row">
+                <span class="stat-name">Akurasi & Jangkauan</span>
+                <div class="stat-bar"><div class="stat-fill" id="stat-range" style="width: 98%;"></div></div>
+                <span class="stat-score" id="stat-range-val">EX</span>
+              </div>
+              <div class="stat-stat-row">
+                <span class="stat-name">Stealth & Kamuflase</span>
+                <div class="stat-bar"><div class="stat-fill" id="stat-stealth" style="width: 96%;"></div></div>
+                <span class="stat-score" id="stat-stealth-val">SSS</span>
+              </div>
+              <div class="stat-stat-row">
+                <span class="stat-name">Kecepatan Reaksi</span>
+                <div class="stat-bar"><div class="stat-fill" id="stat-spd" style="width: 88%;"></div></div>
+                <span class="stat-score" id="stat-spd-val">S+</span>
+              </div>
+              <div class="stat-stat-row">
+                <span class="stat-name">Daya Rusak Tembakan</span>
+                <div class="stat-bar"><div class="stat-fill" id="stat-atk" style="width: 92%;"></div></div>
+                <span class="stat-score" id="stat-atk-val">SS</span>
+              </div>
+            </div>
+            <div class="inspect-gear-box" id="inspect-gear-box">
+              <div class="gear-title">PERLENGKAPAN UTAMA</div>
+              <div class="gear-desc" id="inspect-gear-desc">
+                🔫 <strong>Mosin-Nagant Bolt-Action Sniper</strong>: Dilengkapi peredam suara integral SRT dan scope optik pembesaran tinggi untuk eliminasi target jarak jauh tanpa terdeteksi.
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </div>
+  <div id="sniper-scope-overlay" class="sniper-scope-overlay" aria-hidden="true">
+    <div class="scope-occlusion"></div>
+    <div class="scope-barrel">
+      <div class="scope-lens-glass"></div>
+      <div class="scope-reticle">
+        <div class="reticle-line line-horizontal"></div>
+        <div class="reticle-line line-vertical"></div>
+        <div class="reticle-mildots-h">
+          <div class="mildot dot-l4"></div><div class="mildot dot-l3"></div><div class="mildot dot-l2"></div><div class="mildot dot-l1"></div>
+          <div class="mildot dot-r1"></div><div class="mildot dot-r2"></div><div class="mildot dot-r3"></div><div class="mildot dot-r4"></div>
+        </div>
+        <div class="reticle-mildots-v">
+          <div class="mildot dot-t4"></div><div class="mildot dot-t3"></div><div class="mildot dot-t2"></div><div class="mildot dot-t1"></div>
+          <div class="mildot dot-b1"></div><div class="mildot dot-b2"></div><div class="mildot dot-b3"></div><div class="mildot dot-b4"></div>
+        </div>
+        <div class="reticle-center-glow"></div>
+        <div class="reticle-center-dot"></div>
+        <div class="reticle-bdc-container">
+          <div class="bdc-mark bdc-1"><span class="bdc-label">2</span></div>
+          <div class="bdc-mark bdc-2"><span class="bdc-label">4</span></div>
+          <div class="bdc-mark bdc-3"><span class="bdc-label">6</span></div>
+          <div class="bdc-mark bdc-4"><span class="bdc-label">8</span></div>
+        </div>
+        <div class="reticle-rangefinder">
+          <svg class="rangefinder-svg" viewBox="0 0 160 80">
+            <path d="M 10,70 Q 70,68 140,25" fill="none" stroke="rgba(0, 240, 255, 0.75)" stroke-width="1.2"/>
+            <line x1="10" y1="70" x2="140" y2="70" stroke="rgba(0, 240, 255, 0.6)" stroke-width="1.2"/>
+            <text x="35" y="62" fill="rgba(0, 240, 255, 0.8)" font-size="9" font-family="monospace">1000m</text>
+            <text x="75" y="52" fill="rgba(0, 240, 255, 0.8)" font-size="9" font-family="monospace">600m</text>
+            <text x="115" y="32" fill="rgba(0, 240, 255, 0.8)" font-size="9" font-family="monospace">200m</text>
+            <text x="15" y="78" fill="rgba(255, 255, 255, 0.5)" font-size="7" font-family="monospace">1.7m TARGET</text>
+          </svg>
+        </div>
+      </div>
+      <div class="scope-telemetry">
+        <div class="scope-tel-top-left">
+          <div class="scope-model-tag">OPTIC: 1P69 GIACINT</div>
+          <div class="scope-cal-tag">CAL: 7.62x54mmR FMJ</div>
+        </div>
+        <div class="scope-tel-top-right">
+          <div class="scope-zoom-wrap">
+            <span class="scope-label">MAGNIFICATION:</span>
+            <span id="scope-zoom-val" class="scope-zoom-badge">8.0X</span>
+          </div>
+          <div class="scope-zoom-hint">Scroll / Q untuk Zoom (4X • 8X • 12X)</div>
+        </div>
+        <div class="scope-tel-bottom-left">
+          <div class="scope-wind-tag">WIND: 1.4 M/S • ELEV: +1.2 MIL</div>
+          <div class="scope-stabilizer">STABILIZER: <span id="scope-breath-status">AKTIF</span></div>
+        </div>
+        <div class="scope-tel-bottom-right">
+          <div class="scope-range-wrap">
+            <span class="scope-label">JARAK LASER:</span>
+            <span id="scope-range-val" class="scope-range-badge">-- M</span>
+          </div>
+          <div id="scope-target-status" class="scope-target-tag">SIAP MENEMBAK</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="sniper-crosshair" class="sniper-crosshair">
+    <div class="reticle-ring"></div>
+    <div class="reticle-dot"></div>
+    <div class="reticle-line h-left"></div>
+    <div class="reticle-line h-right"></div>
+    <div class="reticle-line v-top"></div>
+    <div class="reticle-line v-bottom"></div>
+    <div class="reticle-info">
+      <span id="legacy-reticle-dist">DIST: 48.5m</span>
+      <span>CALIBER: 7.62mm</span>
+      <span class="sniper-ready">READY</span>
+    </div>
+  </div>
+  <article id="project-drawer" class="project-drawer" aria-labelledby="drawer-title">
+    <div class="drawer-header">
+      <div>
+        <div id="drawer-district" class="drawer-district-tag">DISTRICT SECTOR</div>
+        <div id="drawer-cat" class="drawer-category">PROJECT SHOWCASE</div>
+      </div>
+      <button id="drawer-close" class="drawer-close-btn" aria-label="Tutup Laci">✕</button>
+    </div>
+    <h2 id="drawer-title" class="drawer-title">Project Title</h2>
+    <div class="drawer-body">
+      <div id="drawer-tags" class="drawer-tags"></div>
+      <div id="drawer-desc"></div>
+    </div>
+    <div class="drawer-footer">
+      <a id="drawer-link" href="#" target="_blank" rel="noopener noreferrer" class="drawer-action-btn">
+        LIHAT DOKUMENTASI / REPO →
+      </a>
+    </div>
+  </article>
+  <nav class="touch-controls" aria-label="Mobile Gamepad">
+    <div class="touch-cluster">
+      <button id="touch-left" class="touch-btn" aria-label="Steer Left">◄</button>
+      <button id="touch-right" class="touch-btn" aria-label="Steer Right">►</button>
+      <button id="touch-horn" class="touch-btn" aria-label="Honk Horn">📯</button>
+    </div>
+    <div class="touch-cluster">
+      <button id="touch-drift" class="touch-btn" aria-label="Handbrake Drift">⚡</button>
+      <button id="touch-brake" class="touch-btn touch-btn-pedal" aria-label="Brake & Reverse">REV</button>
+      <button id="touch-gas" class="touch-btn touch-btn-pedal" aria-label="Accelerate">GAS</button>
+    </div>
+  </nav>
+  <script src="assets/js/core/three.min.js"></script>
+  <script src="assets/js/core/GLTFLoader.js"></script>
+  <script src="assets/js/data/vehicles/bugatti_model_data.js"></script>
+  <script src="assets/js/data/vehicles/lamborghini_model_data.js"></script>
+  <script src="assets/js/data/vehicles/dodge_model_data.js"></script>
+  <script src="assets/js/data/vehicles/mclaren_f1_data.js"></script>
+  <script src="assets/js/data/characters/hero_model_data.js"></script>
+  <script src="assets/js/data/characters/miyu_model_data.js"></script>
+  <script src="assets/js/data/environment/sky_textures.js"></script>
+  <script src="assets/js/data/environment/tokyo_city_model_data.js"></script>
+  <script src="assets/js/data/environment/ccity_building_data.js"></script>
+  <script src="assets/js/data/environment/tokyo_tower_data.js"></script>
+  <script src="assets/js/app/config.js"></script>
+  <script src="assets/js/app/i18n.js"></script>
+  <script src="assets/js/app/shaders.js"></script>
+  <script src="assets/js/app/audio.js"></script>
+  <script src="assets/js/app/physics.js"></script>
+  <script src="assets/js/app/car.js"></script>
+  <script src="assets/js/app/world.js"></script>
+  <script src="assets/js/app/radar.js"></script>
+  <script src="assets/js/app/main.js"></script>
+</body>
+</html>
